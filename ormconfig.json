@@ -1,0 +1,14 @@
+{
+  "type": "mysql",
+  "host": "postgres",
+  "port": 8889,
+  "username": "root",
+  "password": "root",
+  "database": "Library",
+  "entities": ["dist/**/*.entity.ts"],  
+  "migrationsTableName": "student_migration_table",
+  "migrations": ["migration/*.js"],
+  "cli": {
+    "migrationsDir": "migration"
+  }
+}
