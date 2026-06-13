@@ -6,7 +6,8 @@ import { DataSource, Repository } from 'typeorm';
 import { BaseRepository } from './base.repository';
 import { QueryBuilderHelper } from 'src/utils/queryBuilder.utils';
 import { FindUsersQueryDto } from 'src/dtos/user.dto';
-import { PaginatedRecordsDto } from 'src/dtos/response.dto';
+import { PaginatedRecordsDto } from 'src/dtos/general.dto';
+import { DeepPartial } from 'typeorm';
 
 @Injectable()
 export class UserRepository extends BaseRepository<User> {
@@ -18,7 +19,14 @@ export class UserRepository extends BaseRepository<User> {
   }
 
   async findUserByEmail(email: string) {
-    return this.repo.findOne({ where: { email } });
+    return this.repo
+      .createQueryBuilder('user')
+      .where('LOWER(user.email) = LOWER(:email)', { email })
+      .getOne();
+  }
+
+  async createUser(payload: DeepPartial<User>): Promise<User> {
+    return this.repo.save(this.repo.create(payload));
   }
 
   async findAllUsers(
@@ -34,9 +42,9 @@ export class UserRepository extends BaseRepository<User> {
         'user.email': query.searchQuery,
         'user.phoneNumber': query.searchQuery,
       })
-      .applyDateRange('user.created_at', query.startDate, query.endDate)
-      .applySorting('user.created_at', query.sortOrder);
+      .applyDateRange('user.createdAt', query.startDate, query.endDate)
+      .applySorting('user.createdAt', query.sortOrder);
 
-    return helper.paginate(query, 'user');
+    return helper.paginate(query);
   }
 }

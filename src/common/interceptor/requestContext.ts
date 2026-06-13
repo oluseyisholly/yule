@@ -4,28 +4,44 @@ import {
   Injectable,
   NestInterceptor,
 } from '@nestjs/common';
-import { Observable } from 'rxjs';
+import { from, Observable } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
+import { EventContactService } from 'src/services/event-contact.service';
 import { RequestContext } from '../context/requestContext';
 
 @Injectable()
 export class RequestContextInterceptor implements NestInterceptor {
+  constructor(private readonly eventContactService: EventContactService) {}
+
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const req = context.switchToHttp().getRequest();
     const user = req.user;
+    const userId = user?.sub ?? user?.id;
 
-
-    let result: Observable<any>;
-    RequestContext.run(
-      {
-        userId: user?.sub ?? user?.id,
-        groupId: user?.groupId,
-        membershipId: user?.membershipId,
+    return new Observable((subscriber) => {
+      const contextData = {
+        userId,
         role: user?.role,
-      },
-      () => {
-        result = next.handle();
-      },
-    );
-    return result!;
+      };
+
+      return RequestContext.run(contextData, () => {
+        const source$ = userId
+          ? from(
+              this.eventContactService.ensureCurrentUserContactEntity(
+                userId,
+                user,
+              ),
+            ).pipe(switchMap(() => next.handle()))
+          : next.handle();
+
+        const subscription = source$.subscribe({
+          next: (value) => subscriber.next(value),
+          error: (error) => subscriber.error(error),
+          complete: () => subscriber.complete(),
+        });
+
+        return () => subscription.unsubscribe();
+      });
+    });
   }
 }

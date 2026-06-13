@@ -1,16 +1,19 @@
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 import {  IsNotEmpty, IsNumber, IsString, Min } from 'class-validator';
 import { BaseFilterDto } from './baseFilter.dto';
+import { Trim } from 'src/decorators/trim.decorator';
 
 export class RequestItemDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
+  @Trim()
   purchasePeriodId: string;
 
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
+  @Trim()
   purchasePeriodItemId: string;
 
   @ApiProperty()

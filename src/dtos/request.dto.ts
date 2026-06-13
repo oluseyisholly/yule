@@ -11,14 +11,14 @@ import {
 import { BaseFilterDto } from './baseFilter.dto';
 import { RequestItemDto } from './requestItem.dto';
 import { Type } from 'class-transformer';
+import { Trim } from 'src/decorators/trim.decorator';
 
 export class RequestDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
+  @Trim()
   purchasePeriodId: string;
-
-
 
   @ApiProperty({
     type: [RequestItemDto],

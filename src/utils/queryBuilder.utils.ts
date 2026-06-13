@@ -1,7 +1,10 @@
 // src/common/utils/query-builder.util.ts
 import { Brackets, SelectQueryBuilder } from 'typeorm';
-import { PaginationDto, normalizePagination } from 'src/dtos/pagination.dto';
-import { PaginatedRecordsDto } from 'src/dtos/response.dto';
+import {
+  PaginatedRecordsDto,
+  PaginationDto,
+  normalizePagination,
+} from 'src/dtos/general.dto';
 import { startOfDay, endOfDay, parseISO, isValid } from 'date-fns';
 import { RequestContext } from 'src/common/context/requestContext';
 
@@ -11,11 +14,7 @@ interface Relation {
 }
 
 export class QueryBuilderHelper<T> {
-  private readonly groupId: string;
-
-  constructor(private readonly qb: SelectQueryBuilder<T>) {
-    this.groupId = RequestContext.get('groupId');
-  }
+  constructor(private readonly qb: SelectQueryBuilder<T>) {}
 
   applyRelations(relations: Relation[]) {
     relations.forEach((r) => this.qb.leftJoinAndSelect(r.path, r.alias));
@@ -81,7 +80,7 @@ export class QueryBuilderHelper<T> {
     Object.entries(filters).forEach(([field, value], index) => {
       if (value === undefined || value === null || value === '') return;
 
-      const paramKey = `filter_${field}_${index}`;
+      const paramKey = `filter_${field.replace(/[^a-zA-Z0-9_]/g, '_')}_${index}`;
       const operator = Array.isArray(value)
         ? 'IN'
         : typeof value === 'string' && value.includes('%')
@@ -141,38 +140,15 @@ export class QueryBuilderHelper<T> {
     return this;
   }
 
-  async findOne(alias?: string): Promise<T | null> {
+  async findOne(): Promise<T | null> {
     const qb = this.qb;
-
-    if (this.groupId && alias)
-      this.qb.andWhere(`${alias}.groupId = :groupId`, {
-        groupId: this.groupId,
-      });
 
     return qb.getOne();
   }
 
-  async paginate(
-    options: PaginationDto,
-    alias: string,
-    fetchNullGroups: boolean = false,
-  ): Promise<PaginatedRecordsDto<T>> {
+  async paginate(options: PaginationDto): Promise<PaginatedRecordsDto<T>> {
     const { page, pageSize } = normalizePagination(options);
     const skip = (page - 1) * pageSize;
-
-    if (this.groupId) {
-      this.qb.andWhere(
-        new Brackets((qb) => {
-          qb.where(`${alias}.groupId = :groupId`, {
-            groupId: this.groupId,
-          });
-
-          if (fetchNullGroups) {
-            qb.orWhere(`${alias}.groupId IS NULL`);
-          }
-        }),
-      );
-    }
 
     const [data, total] = await this.qb
       .skip(skip)

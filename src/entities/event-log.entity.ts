@@ -1,7 +1,7 @@
 import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { Event } from './event.entity';
 import { EventParticipant } from './event-participant.entity';
-import { User } from './user.entity';
+import { Contact } from './contact.entity';
 import { EventLogAction } from 'src/common/index.enum';
 import { Base } from './base';
 
@@ -18,18 +18,18 @@ export class EventLog extends Base {
   eventId: string;
 
   /**
-   * The logged-in user who performed the action.
+   * The logged-in contact who performed the action.
    * Nullable because some actions may be system-generated.
    */
-  @ManyToOne(() => User, {
+  @ManyToOne(() => Contact, {
     nullable: true,
     onDelete: 'SET NULL',
   })
-  @JoinColumn({ name: 'actor_user_id' })
-  actorUser?: User;
+  @JoinColumn({ name: 'actor_contact_id' })
+  actorContact?: Contact;
 
-  @Column({ name: 'actor_user_id', type: 'uuid', nullable: true })
-  actorUserId?: string;
+  @Column({ name: 'actor_contact_id', type: 'uuid', nullable: true })
+  actorContactId?: string;
 
   /**
    * Useful when the actor is a participant/guest instead of a platform user.

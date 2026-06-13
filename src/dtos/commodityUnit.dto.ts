@@ -33,6 +33,7 @@ export class CommodityUnitDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
+  @Trim()
   commodityId: string;
 
   @ApiProperty({
@@ -52,6 +53,7 @@ export class CommodityUnitDto {
   })
   @IsString()
   @IsOptional()
+  @Trim({ emptyToNull: true })
   baseUnitId?: string;
 }
 

@@ -1,22 +1,26 @@
 import {
   ApiProperty,
+  ApiPropertyOptional,
   IntersectionType,
 } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
 import { Match } from 'src/decorators/match.decorator';
 import { Trim } from 'src/decorators/trim.decorator';
 import { BaseFilterDto } from './baseFilter.dto';
-import { PaginationDto } from './pagination.dto';
-import { createPaginatedDto, createResponseDto } from './response.dto';
+import {
+  PaginationDto,
+  createPaginatedDto,
+  createResponseDto,
+} from './general.dto';
 
 class UserCredentialsDto {
-  @ApiProperty()
+  @ApiProperty({ example: 'owoyemisholly@gmail.com' })
   @Trim()
   @IsNotEmpty()
   @IsEmail()
   email: string;
 
-  @ApiProperty({ minLength: 7 })
+  @ApiProperty({ minLength: 7, example: 'Olusola@123' })
   @IsNotEmpty()
   @IsString()
   @MinLength(7)
@@ -93,6 +97,27 @@ export class FindUsersQueryDto extends IntersectionType(
   UserFilterDto,
 ) {}
 
+export class CheckUserAccountQueryDto {
+  @ApiProperty({ example: 'owoyemisholly@gmail.com' })
+  @Trim()
+  @IsNotEmpty()
+  @IsEmail()
+  email: string;
+}
+
+export class UserAccountExistsResponseDto {
+  @ApiProperty({ example: true })
+  exists: boolean;
+
+  @ApiPropertyOptional({
+    description: 'The normalized email that was checked',
+    example: 'owoyemisholly@gmail.com',
+  })
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+}
+
 export class PaginatedUsersDto extends createPaginatedDto(UserResponseDto) {}
 
 export class UserResponseEnvelopeDto extends createResponseDto(UserResponseDto, {
@@ -110,5 +135,13 @@ export class PaginatedUsersResponseEnvelopeDto extends createResponseDto(
   {
     codeExample: 200,
     messageExample: 'Users fetched successfully',
+  },
+) {}
+
+export class UserAccountExistsResponseEnvelopeDto extends createResponseDto(
+  UserAccountExistsResponseDto,
+  {
+    codeExample: 200,
+    messageExample: 'Account check completed successfully',
   },
 ) {}

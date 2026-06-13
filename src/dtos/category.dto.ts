@@ -15,6 +15,7 @@ export class CategoryDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
+  @Trim()
   @Expose()
   description: string;
 }

@@ -33,11 +33,13 @@ export class PurchasePeriodItemDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
+  @Trim()
   commodityUnitId: string;
 
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
+  @Trim()
   commodityId: string;
 }
 

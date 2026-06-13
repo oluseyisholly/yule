@@ -17,6 +17,7 @@ export class PurchasePeriodDto {
   @ApiProperty({
     example: '2025-01-10T00:00:00Z',
   })
+  @Trim()
   @IsNotEmpty()
   @IsDateString()
   requestEndDate: string;
@@ -24,6 +25,7 @@ export class PurchasePeriodDto {
   @ApiProperty({
     example: '2025-01-15T00:00:00Z',
   })
+  @Trim()
   @IsNotEmpty()
   @IsDateString()
   marketRunDate: string;

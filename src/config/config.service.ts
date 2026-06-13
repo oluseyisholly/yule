@@ -1,4 +1,4 @@
-import { TypeOrmModuleOptions, TypeOrmOptionsFactory } from '@nestjs/typeorm';
+import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 require('dotenv').config();
 
 class ConfigService {

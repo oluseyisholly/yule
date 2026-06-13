@@ -1,12 +1,18 @@
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
+
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
-import { RequestContextInterceptor } from './common/interceptor/requestContext';
-import { VersioningType } from '@nestjs/common';
+import {
+  ValidationPipe,
+  ClassSerializerInterceptor,
+  VersioningType,
+} from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Add this line to enable @Exclude() globally
+  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
 
   app.enableCors({
     origin: '*', // Allows any domain to access your API
@@ -19,6 +25,7 @@ async function bootstrap() {
 
   app.enableVersioning({
     type: VersioningType.URI,
+    defaultVersion: '1',
   });
 
   app.useGlobalPipes(
@@ -28,8 +35,6 @@ async function bootstrap() {
       whitelist: true, // Strip out any properties that are not defined in the DTO.
     }),
   );
-
-  app.useGlobalInterceptors(new RequestContextInterceptor());
 
   const options = new DocumentBuilder()
     .setTitle('Yule API')

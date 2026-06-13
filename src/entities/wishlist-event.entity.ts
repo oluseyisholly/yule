@@ -1,16 +1,9 @@
-import {
-  Entity,
-  PrimaryColumn,
-  Column,
-  OneToOne,
-  OneToMany,
-  JoinColumn,
-} from 'typeorm';
+import { Entity, PrimaryColumn, Column, OneToOne, JoinColumn } from 'typeorm';
 import { Event } from './event.entity';
-import { WishlistItem } from './wishlist-item.entity';
+import { Base } from './base';
 
 @Entity('wishlist_events')
-export class WishlistEvent {
+export class WishlistEvent extends Base {
   @PrimaryColumn({ name: 'event_id', type: 'uuid' })
   eventId: string;
 
@@ -23,9 +16,10 @@ export class WishlistEvent {
   @Column({ type: 'boolean', default: true })
   allowMultipleItems: boolean;
 
+  @Column({ type: 'timestamp', nullable: true })
+  eventDeadline?: Date;
+
   @Column({ type: 'varchar', length: 50, default: 'private' })
   visibility: string;
 
-  @OneToMany(() => WishlistItem, (item) => item.wishlistEvent)
-  items: WishlistItem[];
 }

@@ -2,6 +2,12 @@ export enum SwaggerApiEnumTags {
   APP = 'app',
   USER = 'User',
   EVENTTYPE = 'Event Type',
+  DRAWNAMEEVENT = 'Draw Name Event',
+  WISHLISTEVENT = 'Wishlist Event',
+  EVENTCONTACT = 'Event Contact',
+  PARTICIPANT = 'Participant',
+  INVITATION = 'Invitation',
+  GIFT = 'Gift',
 }
 
 export enum EventParticipantRole {
@@ -9,6 +15,11 @@ export enum EventParticipantRole {
   HOST = 'host',
   PARTICIPANT = 'participant',
   RECIPIENT = 'recipient',
+}
+
+export enum Gender {
+  MALE = 'male',
+  FEMALE = 'female',
 }
 
 export enum EventLogAction {

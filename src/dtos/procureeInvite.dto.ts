@@ -9,19 +9,23 @@ import {
   ValidateIf,
 } from 'class-validator';
 import { Match } from 'src/decorators/match.decorator';
+import { Trim } from 'src/decorators/trim.decorator';
 
 export class CreateProcureeInviteDto {
   @ApiPropertyOptional()
+  @Trim()
   @IsOptional()
   @IsEmail()
   email?: string;
 
   @ApiPropertyOptional()
+  @Trim()
   @IsOptional()
   @IsString()
   phone?: string;
 
   @ApiPropertyOptional()
+  @Trim()
   @IsOptional()
   @IsDateString()
   expiresAt?: string;
@@ -94,12 +98,14 @@ export class ProcureeInvitePreviewDto {
 
 export class ProcureeInvitePreviewQueryDto {
   @ApiPropertyOptional()
+  @Trim()
   @ValidateIf((data: ProcureeInvitePreviewQueryDto) => !data.phone)
   @IsNotEmpty()
   @IsEmail()
   email?: string;
 
   @ApiPropertyOptional()
+  @Trim()
   @ValidateIf((data: ProcureeInvitePreviewQueryDto) => !data.email)
   @IsNotEmpty()
   @IsString()
@@ -108,6 +114,7 @@ export class ProcureeInvitePreviewQueryDto {
 
 export class AcceptProcureeInviteDto {
   @ApiProperty()
+  @Trim()
   @IsNotEmpty()
   @IsString()
   token: string;
@@ -115,26 +122,31 @@ export class AcceptProcureeInviteDto {
 
 export class AcceptProcureeInviteSignupDto {
   @ApiProperty()
+  @Trim()
   @IsNotEmpty()
   @IsString()
   token: string;
 
   @ApiProperty()
+  @Trim()
   @IsNotEmpty()
   @IsString()
   firstName: string;
 
   @ApiProperty()
+  @Trim()
   @IsNotEmpty()
   @IsString()
   lastName: string;
 
   @ApiProperty()
+  @Trim()
   @IsNotEmpty()
   @IsEmail()
   email: string;
 
   @ApiProperty()
+  @Trim()
   @IsNotEmpty()
   @IsString()
   phone: string;

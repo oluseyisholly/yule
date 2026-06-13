@@ -14,12 +14,12 @@ import {
 } from 'class-validator';
 import { Trim } from 'src/decorators/trim.decorator';
 import { BaseFilterDto } from './baseFilter.dto';
-import { PaginationDto } from './pagination.dto';
 import {
-  IdResponseDto,
+  DeleteResponseDto,
+  PaginationDto,
   createPaginatedDto,
   createResponseDto,
-} from './response.dto';
+} from './general.dto';
 
 function transformBoolean(value: unknown) {
   if (value === 'true') return true;
@@ -36,10 +36,10 @@ export class CreateEventTypeDto {
   name: string;
 
   @ApiPropertyOptional()
-  @Trim()
+  @Trim({ emptyToNull: true })
   @IsOptional()
   @IsString()
-  description?: string;
+  description?: string | null;
 
   @ApiPropertyOptional({ default: true })
   @IsOptional()
@@ -68,8 +68,6 @@ export class EventTypeResponseDto {
   @ApiPropertyOptional()
   updatedAt?: Date;
 }
-
-export class EventTypeDeleteDto extends IdResponseDto {}
 
 export class EventTypeFilterDto extends BaseFilterDto {
   @ApiPropertyOptional()
@@ -113,7 +111,7 @@ export class PaginatedEventTypesResponseEnvelopeDto extends createResponseDto(
 ) {}
 
 export class EventTypeDeleteResponseEnvelopeDto extends createResponseDto(
-  EventTypeDeleteDto,
+  DeleteResponseDto,
   {
     codeExample: 200,
     messageExample: 'Event type deleted successfully',

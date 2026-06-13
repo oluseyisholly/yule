@@ -1,7 +1,15 @@
-import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  OneToMany,
+  OneToOne,
+} from 'typeorm';
 import { Event } from './event.entity';
-import { User } from './user.entity';
 import { Base } from './base';
+import { Contact } from './contact.entity';
+import { EventGift } from './gift.entity';
 
 export enum EventParticipantRole {
   CREATOR = 'creator',
@@ -22,18 +30,39 @@ export class EventParticipant extends Base {
   @Column({ name: 'event_id', type: 'uuid' })
   eventId: string;
 
-  /**
-   * Nullable because guest participants may not have an account.
-   */
-  @ManyToOne(() => User, (user) => user.eventParticipations, {
+  @ManyToOne(() => Contact, {
     nullable: true,
     onDelete: 'SET NULL',
   })
-  @JoinColumn({ name: 'user_id' })
-  user?: User;
+  @JoinColumn({ name: 'event_contact_id' })
+  eventContact?: Contact;
 
-  @Column({ name: 'user_id', type: 'uuid', nullable: true })
-  userId?: string;
+  @Column({ name: 'event_contact_id', type: 'uuid', nullable: true })
+  eventContactId?: string;
+
+  /**
+   * This is the participant assigned to give this participant a gift.
+   *
+   * Example:
+   * Mary is the receiver.
+   * John is the giver.
+   *
+   * Mary's row:
+   * giftGiverParticipantId = John's participant id
+   */
+  @Column({
+    name: 'gift_giver_participant_id',
+    type: 'uuid',
+    nullable: true,
+  })
+  giftGiverParticipantId?: string;
+
+  @ManyToOne(() => EventParticipant, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'gift_giver_participant_id' })
+  giftGiverParticipant?: EventParticipant;
 
   @Column({
     type: 'enum',
@@ -42,9 +71,12 @@ export class EventParticipant extends Base {
   })
   role: EventParticipantRole;
 
-  @Column({ type: 'varchar', length: 100, default: 'invited' })
-  status: string;
+  @Column({ name: 'is_notified', type: 'boolean', default: false })
+  isNotified: boolean;
 
-  @Column({ type: 'boolean', default: false })
-  hasAcceptedInvite: boolean;
+  @Column({ name: 'is_pair_active', type: 'boolean', default: false })
+  isPairActive: boolean;
+
+  @OneToMany(() => EventGift, (gift) => gift.recipientParticipant)
+  gifts: EventGift[];
 }

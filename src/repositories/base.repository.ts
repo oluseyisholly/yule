@@ -1,10 +1,9 @@
-// src/common/repositories/base.repository.ts
 import { RequestContext } from 'src/common/context/requestContext';
 import {
+  PaginatedRecordsDto,
   PaginationDto,
   normalizePagination,
-} from 'src/dtos/pagination.dto';
-import { PaginatedRecordsDto } from 'src/dtos/response.dto';
+} from 'src/dtos/general.dto';
 import {
   DataSource,
   DeepPartial,
@@ -20,73 +19,73 @@ export class BaseRepository<T extends { id: any }> {
     protected readonly dataSource: DataSource,
     protected readonly repo: Repository<T>,
   ) {}
-  private getGroupId() {
-    return RequestContext.get('groupId');
-  }
 
-  async create(data: DeepPartial<T>, hasGroupId = true): Promise<T> {
-    const groupId = this.getGroupId();
+  async create(data: DeepPartial<T>): Promise<T> {
+    const actorId = RequestContext.getActorId();
 
-    const entity = hasGroupId
-      ? this.repo.create({ ...data, groupId: groupId })
-      : this.repo.create(data);
+    const entity = this.repo.create({ ...data, createdById: actorId });
     return this.repo.save(entity);
   }
 
-  findById(id: any, options?: FindOneOptions<T>) {
+  findById(id: any, options?: FindOneOptions<T>): Promise<T | null> {
     return this.repo.findOne({ where: { id } as any, ...(options ?? {}) });
   }
-  findOne(where: FindOptionsWhere<T>, options?: FindOneOptions<T>) {
+
+  findOne(
+    where: FindOptionsWhere<T>,
+    options?: FindOneOptions<T>,
+  ): Promise<T | null> {
     return this.repo.findOne({ where, ...(options ?? {}) });
   }
-  findAll(options?: FindManyOptions<T>) {
+
+  findAll(options?: FindManyOptions<T>): Promise<T[]> {
     return this.repo.find(options);
   }
-  exists(where: FindOptionsWhere<T>) {
+
+  exists(where: FindOptionsWhere<T>): Promise<boolean> {
     return this.repo.exist({ where });
   }
-  async update(id: any, patch: DeepPartial<T>) {
-    await this.repo.update(id, patch);
+
+  async update(id: any, patch: DeepPartial<T>): Promise<T> {
+    await this.repo.update(id, patch as any);
     const v = await this.findById(id);
     if (!v) throw new Error('EntityNotFound');
     return v;
   }
-  async delete(id: any, soft = true) {
-    if (soft && (this.repo.softDelete as any))
-      await (this.repo.softDelete as any)(id);
-    else await this.repo.delete(id);
+
+  async delete(id: any, soft = true): Promise<void> {
+    if (soft && typeof this.repo.softDelete === 'function') {
+      await this.repo.softDelete(id);
+    } else {
+      await this.repo.delete(id);
+    }
   }
 
   async paginate(
     options: FindManyOptions<T> & {
       search?: string;
       searchFields?: (keyof T)[];
-      selectFields?: (keyof T)[]; // 👈 new option
+      selectFields?: (keyof T)[];
       include?: string[];
     } = {},
-    PaginationDto: PaginationDto,
+    paginationDto: PaginationDto,
   ): Promise<PaginatedRecordsDto<T>> {
-    const { page, pageSize } = normalizePagination(PaginationDto);
-
+    const { page, pageSize } = normalizePagination(paginationDto);
     const {
       search,
       searchFields = [],
       selectFields = [],
       include = [],
-
       where: existingWhere,
       ...rest
     } = options;
 
-    // 🔍 build dynamic where for search
     let where = existingWhere;
-
     if (search && searchFields.length) {
       const searchWhere = searchFields.map((field) => ({
         [field]: ILike(`%${search}%`),
       })) as any[];
 
-      // merge with existing where conditions if any
       if (Array.isArray(existingWhere)) {
         where = [...existingWhere, ...searchWhere];
       } else if (existingWhere) {
@@ -101,8 +100,8 @@ export class BaseRepository<T extends { id: any }> {
       where,
       skip: (page - 1) * pageSize,
       take: pageSize,
-      select: selectFields.length ? (selectFields as any) : undefined, // 👈 key addition
-      relations: include.length ? include : undefined, // 👈 this enables joins
+      select: selectFields.length ? (selectFields as any) : undefined,
+      relations: include.length ? include : undefined,
     });
 
     return {
@@ -114,7 +113,7 @@ export class BaseRepository<T extends { id: any }> {
     };
   }
 
-  async transaction<R>(fn: (repo: Repository<T>) => Promise<R>) {
+  async transaction<R>(fn: (repo: Repository<T>) => Promise<R>): Promise<R> {
     return this.dataSource.transaction(async (em) => {
       const txRepo = em.getRepository<T>(this.repo.metadata.target as any);
       return fn(txRepo);

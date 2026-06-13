@@ -1,3 +1,4 @@
+import { Exclude } from 'class-transformer';
 import {
   Column,
   PrimaryGeneratedColumn,
@@ -22,6 +23,7 @@ export abstract class Base {
   @Column({ name: 'created_by_id', type: 'uuid', nullable: true })
   createdById?: string;
 
+  @Exclude()
   @Column({ name: 'updated_by_id', type: 'uuid', nullable: true })
   updatedById?: string;
 }

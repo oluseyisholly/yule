@@ -5,6 +5,10 @@
   "author": "",
   "private": true,
   "license": "UNLICENSED",
+  "packageManager": "yarn@1.22.22",
+  "engines": {
+    "node": "^20.19.0 || ^22.13.0"
+  },
   "scripts": {
     "build": "nest build",
     "migration:generate": "npx ts-node -P ./tsconfig.json -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:generate -d ./src/config/data-source.ts ./src/database/migrations/migration",
@@ -39,6 +43,7 @@
     "date-fns": "^4.1.0",
     "dotenv": "^16.4.7",
     "mongodb": "^5.9.2",
+    "nodemailer": "^6.9.16",
     "passport": "^0.7.0",
     "passport-facebook": "^3.0.0",
     "pg": "^8.13.1",

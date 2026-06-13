@@ -3,7 +3,7 @@ import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { Brackets, DataSource, Repository } from 'typeorm';
 import { FindEventTypesQueryDto } from 'src/dtos/event-type.dto';
 import { EventType } from 'src/entities/event-type.entity';
-import { PaginatedRecordsDto } from 'src/dtos/response.dto';
+import { PaginatedRecordsDto } from 'src/dtos/general.dto';
 import { QueryBuilderHelper } from 'src/utils/queryBuilder.utils';
 import { BaseRepository } from './base.repository';
 
@@ -16,7 +16,10 @@ export class EventTypeRepository extends BaseRepository<EventType> {
     super(dataSource, repo);
   }
 
-  async findByName(name: string, excludeId?: string): Promise<EventType | null> {
+  async findByName(
+    name: string,
+    excludeId?: string,
+  ): Promise<EventType | null> {
     const qb = this.repo.createQueryBuilder('eventType');
 
     qb.where('LOWER(eventType.name) = LOWER(:name)', { name });
@@ -42,10 +45,10 @@ export class EventTypeRepository extends BaseRepository<EventType> {
       .applyFilter({
         'eventType.isActive': query.isActive,
       })
-      .applyDateRange('eventType.created_at', query.startDate, query.endDate)
-      .applySorting('eventType.created_at', query.sortOrder);
+      .applyDateRange('eventType.createdAt', query.startDate, query.endDate)
+      .applySorting('eventType.createdAt', query.sortOrder);
 
-    return helper.paginate(query, 'eventType');
+    return helper.paginate(query);
   }
 
   async findAvailableEventTypes(
@@ -63,8 +66,8 @@ export class EventTypeRepository extends BaseRepository<EventType> {
       .applyFilter({
         'eventType.isActive': query.isActive,
       })
-      .applyDateRange('eventType.created_at', query.startDate, query.endDate)
-      .applySorting('eventType.created_at', query.sortOrder);
+      .applyDateRange('eventType.createdAt', query.startDate, query.endDate)
+      .applySorting('eventType.createdAt', query.sortOrder);
 
     qb.andWhere(
       new Brackets((subQuery) => {
@@ -73,6 +76,6 @@ export class EventTypeRepository extends BaseRepository<EventType> {
       }),
     );
 
-    return helper.paginate(query, 'eventType');
+    return helper.paginate(query);
   }
 }

@@ -1,8 +1,7 @@
 // user.entity.ts – ROOT (no groupId)
-import { Entity, Column, OneToMany } from 'typeorm';
-import { Event } from './event.entity';
-import { EventParticipant } from './event-participant.entity';
+import { Entity, Column } from 'typeorm';
 import { Base } from './base';
+import { Exclude } from 'class-transformer';
 
 @Entity('users')
 export class User extends Base {
@@ -19,11 +18,6 @@ export class User extends Base {
   email: string;
 
   @Column({ type: 'varchar', length: 255 })
+  @Exclude()
   password: string;
-
-  @OneToMany(() => Event, (event) => event.createdBy)
-  createdEvents: Event[];
-
-  @OneToMany(() => EventParticipant, (participant) => participant.user)
-  eventParticipations: EventParticipant[];
 }

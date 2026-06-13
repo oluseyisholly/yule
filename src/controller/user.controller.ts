@@ -15,18 +15,22 @@ import { StandardResopnse } from 'src/common';
 import { Public } from 'src/decorators/skipAuth.decorator';
 import {
   AuthResponseEnvelopeDto,
-  AuthResponseDto,
+  CheckUserAccountQueryDto,
   CreateUserDto,
   FindUsersQueryDto,
   LoginUserDto,
   PaginatedUsersDto,
   PaginatedUsersResponseEnvelopeDto,
+  UserAccountExistsResponseDto,
+  UserAccountExistsResponseEnvelopeDto,
   UserResponseEnvelopeDto,
-  UserResponseDto,
 } from 'src/dtos/user.dto';
-import { SortOrder } from 'src/dtos/pagination.dto';
+import { SortOrder } from 'src/dtos/general.dto';
+import { User } from 'src/entities/user.entity';
 import { AuthService } from 'src/services/auth.service';
 import { UserService } from 'src/services/user.services';
+
+type AuthenticatedUser = User & { token: string };
 
 @Controller('user')
 @ApiTags(SwaggerApiEnumTags.USER)
@@ -46,8 +50,25 @@ export class UserController {
   })
   createUser(
     @Body() createUserDto: CreateUserDto,
-  ): Promise<StandardResopnse<UserResponseDto>> {
+  ): Promise<StandardResopnse<User>> {
     return this.userService.createUser(createUserDto);
+  }
+
+  @Get('account-exists')
+  @Public()
+  @ApiOperation({ summary: 'Check if a user account exists by email' })
+  @ApiQuery({
+    name: 'email',
+    required: true,
+    type: String,
+    example: 'owoyemisholly@gmail.com',
+  })
+  @ApiOkResponse({ type: UserAccountExistsResponseEnvelopeDto })
+  @ApiBadRequestResponse({ description: 'Validation failed' })
+  checkUserAccount(
+    @Query() query: CheckUserAccountQueryDto,
+  ): Promise<StandardResopnse<UserAccountExistsResponseDto>> {
+    return this.userService.checkUserAccount(query);
   }
 
   @Get()
@@ -105,7 +126,7 @@ export class UserController {
   @ApiUnauthorizedResponse({ description: 'Invalid email or password' })
   signIn(
     @Body() loginUserDto: LoginUserDto,
-  ): Promise<StandardResopnse<AuthResponseDto>> {
+  ): Promise<StandardResopnse<AuthenticatedUser>> {
     return this.authService.login(loginUserDto);
   }
 }

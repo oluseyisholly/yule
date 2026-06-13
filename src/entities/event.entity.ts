@@ -6,7 +6,7 @@ import {
   OneToOne,
   JoinColumn,
 } from 'typeorm';
-import { User } from './user.entity';
+import { Contact } from './contact.entity';
 import { EventType } from './event-type.entity';
 import { EventParticipant } from './event-participant.entity';
 import { HangoutEvent } from './hangout-event.entity';
@@ -15,6 +15,7 @@ import { WishlistEvent } from './wishlist-event.entity';
 import { DrawNameEvent } from './draw-name-event.entity';
 import { Base } from './base';
 import { EventLog } from './event-log.entity';
+import { EventGift } from './gift.entity';
 
 @Entity('events')
 export class Event extends Base {
@@ -33,11 +34,12 @@ export class Event extends Base {
   @Column({ name: 'event_type_id', type: 'uuid' })
   eventTypeId: string;
 
-  @ManyToOne(() => User, (user) => user.createdEvents, {
-    nullable: false,
+  @ManyToOne(() => Contact, {
+    nullable: true,
+    onDelete: 'SET NULL',
   })
   @JoinColumn({ name: 'created_by_id' })
-  createdBy: User;
+  createdBy?: Contact;
 
   @Column({ type: 'timestamp', nullable: true })
   eventDate?: Date;
@@ -59,6 +61,9 @@ export class Event extends Base {
 
   @OneToOne(() => DrawNameEvent, (drawNameEvent) => drawNameEvent.event)
   drawNameEvent: DrawNameEvent;
+
+  @OneToMany(() => EventGift, (gift) => gift.event)
+  gifts: EventGift[];
 
   @OneToMany(() => EventLog, (log) => log.event)
   logs: EventLog[];

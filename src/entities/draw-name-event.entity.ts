@@ -1,14 +1,7 @@
-import {
-  Entity,
-  PrimaryColumn,
-  Column,
-  OneToOne,
-  OneToMany,
-  JoinColumn,
-} from 'typeorm';
+import { Entity, PrimaryColumn, Column, OneToOne, JoinColumn } from 'typeorm';
 import { Event } from './event.entity';
-import { DrawNameAssignment } from './draw-name-assignment.entity';
 import { Base } from './base';
+import { Exclude } from 'class-transformer';
 
 @Entity('draw_name_events')
 export class DrawNameEvent extends Base {
@@ -20,6 +13,9 @@ export class DrawNameEvent extends Base {
   })
   @JoinColumn({ name: 'event_id' })
   event: Event;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  location?: string;
 
   @Column({ type: 'timestamp', nullable: true })
   drawDate?: Date;
@@ -33,12 +29,19 @@ export class DrawNameEvent extends Base {
   })
   maximumSpend?: number;
 
+  @Column({
+    name: 'budget',
+    type: 'numeric',
+    precision: 12,
+    scale: 2,
+    nullable: true,
+  })
+  budget?: number;
+
+  @Exclude()
   @Column({ type: 'boolean', default: false })
   allowSelfDraw: boolean;
 
   @Column({ type: 'boolean', default: false })
   isDrawCompleted: boolean;
-
-  @OneToMany(() => DrawNameAssignment, (assignment) => assignment.drawNameEvent)
-  assignments: DrawNameAssignment[];
 }

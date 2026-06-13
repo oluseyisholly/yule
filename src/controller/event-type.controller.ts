@@ -23,10 +23,10 @@ import {
 } from '@nestjs/swagger';
 import { StandardResopnse } from 'src/common';
 import { SwaggerApiEnumTags } from 'src/common/index.enum';
+import { DeleteResponseDto, SortOrder } from 'src/dtos/general.dto';
 import {
   CreatedEventTypeResponseEnvelopeDto,
   CreateEventTypeDto,
-  EventTypeDeleteDto,
   EventTypeDeleteResponseEnvelopeDto,
   EventTypeResponseDto,
   EventTypeResponseEnvelopeDto,
@@ -35,7 +35,6 @@ import {
   PaginatedEventTypesResponseEnvelopeDto,
   UpdateEventTypeDto,
 } from 'src/dtos/event-type.dto';
-import { SortOrder } from 'src/dtos/pagination.dto';
 import { EventTypeService } from 'src/services/event-type.service';
 
 @Controller('event-type')
@@ -182,7 +181,7 @@ export class EventTypeController {
   @ApiUnauthorizedResponse({ description: 'Missing or invalid JWT token' })
   deleteEventType(
     @Param('id') id: string,
-  ): Promise<StandardResopnse<EventTypeDeleteDto>> {
+  ): Promise<StandardResopnse<DeleteResponseDto>> {
     return this.eventTypeService.deleteEventType(id);
   }
 }

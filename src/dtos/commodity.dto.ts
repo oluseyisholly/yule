@@ -53,11 +53,13 @@ export class CommodityDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
+  @Trim()
   description: string;
 
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
+  @Trim()
   categoryId: string;
 
   @ApiProperty({

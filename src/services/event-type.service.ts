@@ -3,13 +3,12 @@ import {
   HttpStatus,
   Injectable,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { RequestContext } from 'src/common/context/requestContext';
 import { StandardResopnse } from 'src/common';
+import { DeleteResponseDto } from 'src/dtos/general.dto';
 import {
   CreateEventTypeDto,
-  EventTypeDeleteDto,
   EventTypeResponseDto,
   FindEventTypesQueryDto,
   PaginatedEventTypesDto,
@@ -20,15 +19,17 @@ import { EventTypeRepository } from 'src/repositories/event-type.repository';
 
 @Injectable()
 export class EventTypeService {
-  constructor(private readonly eventTypeRepository: EventTypeRepository) {}
+  constructor(
+    private readonly eventTypeRepository: EventTypeRepository,
+  ) {}
 
   async createEventType(
     createEventTypeDto: CreateEventTypeDto,
   ): Promise<StandardResopnse<EventTypeResponseDto>> {
-    const currentUserId = this.getCurrentUserId();
-    const normalizedName = this.normalizeName(createEventTypeDto.name);
-    const existingEventType =
-      await this.eventTypeRepository.findByName(normalizedName);
+    RequestContext.getCurrentContactId();
+    const existingEventType = await this.eventTypeRepository.findByName(
+      createEventTypeDto.name,
+    );
 
     if (existingEventType) {
       throw new ConflictException(
@@ -36,20 +37,16 @@ export class EventTypeService {
       );
     }
 
-    const eventType = await this.eventTypeRepository.create(
-      {
-        name: normalizedName,
-        description: createEventTypeDto.description?.trim() || null,
-        isActive: createEventTypeDto.isActive ?? true,
-        createdById: currentUserId,
-      },
-      false,
-    );
+    const eventType = await this.eventTypeRepository.create({
+      name: createEventTypeDto.name,
+      description: createEventTypeDto.description ?? null,
+      isActive: createEventTypeDto.isActive ?? true,
+    });
 
     return {
       code: HttpStatus.CREATED,
       message: 'Event type created successfully',
-      data: this.toResponse(eventType),
+      data: eventType,
     };
   }
 
@@ -62,34 +59,24 @@ export class EventTypeService {
     return {
       code: HttpStatus.OK,
       message: 'Event types fetched successfully',
-      data: {
-        ...paginatedEventTypes,
-        data: paginatedEventTypes.data.map((eventType) =>
-          this.toResponse(eventType),
-        ),
-      },
+      data: paginatedEventTypes,
     };
   }
 
   async findAvailableEventTypes(
     query: FindEventTypesQueryDto,
   ): Promise<StandardResopnse<PaginatedEventTypesDto>> {
-    const currentUserId = this.getCurrentUserId();
+    const currentContactId = RequestContext.getCurrentContactId();
     const paginatedEventTypes =
       await this.eventTypeRepository.findAvailableEventTypes(
         query,
-        currentUserId,
+        currentContactId,
       );
 
     return {
       code: HttpStatus.OK,
       message: 'Available event types fetched successfully',
-      data: {
-        ...paginatedEventTypes,
-        data: paginatedEventTypes.data.map((eventType) =>
-          this.toResponse(eventType),
-        ),
-      },
+      data: paginatedEventTypes,
     };
   }
 
@@ -101,7 +88,7 @@ export class EventTypeService {
     return {
       code: HttpStatus.OK,
       message: 'Event type fetched successfully',
-      data: this.toResponse(eventType),
+      data: eventType,
     };
   }
 
@@ -110,45 +97,23 @@ export class EventTypeService {
     updateEventTypeDto: UpdateEventTypeDto,
   ): Promise<StandardResopnse<EventTypeResponseDto>> {
     await this.getEventTypeOrThrow(id);
+    await this.ensureEventTypeNameIsUnique(updateEventTypeDto.name, id);
 
-    const patch: Partial<EventType> = {};
-
-    if (updateEventTypeDto.name !== undefined) {
-      const normalizedName = this.normalizeName(updateEventTypeDto.name);
-      const duplicateEventType = await this.eventTypeRepository.findByName(
-        normalizedName,
-        id,
-      );
-
-      if (duplicateEventType) {
-        throw new ConflictException(
-          'An event type with this name already exists',
-        );
-      }
-
-      patch.name = normalizedName;
-    }
-
-    if (updateEventTypeDto.description !== undefined) {
-      patch.description = updateEventTypeDto.description?.trim() || null;
-    }
-
-    if (updateEventTypeDto.isActive !== undefined) {
-      patch.isActive = updateEventTypeDto.isActive;
-    }
-
-    const updatedEventType = await this.eventTypeRepository.update(id, patch);
+    const updatedEventType = await this.eventTypeRepository.update(
+      id,
+      updateEventTypeDto,
+    );
 
     return {
       code: HttpStatus.OK,
       message: 'Event type updated successfully',
-      data: this.toResponse(updatedEventType),
+      data: updatedEventType,
     };
   }
 
   async deleteEventType(
     id: string,
-  ): Promise<StandardResopnse<EventTypeDeleteDto>> {
+  ): Promise<StandardResopnse<DeleteResponseDto>> {
     await this.getEventTypeOrThrow(id);
     await this.eventTypeRepository.delete(id);
 
@@ -169,28 +134,20 @@ export class EventTypeService {
     return eventType;
   }
 
-  private toResponse(eventType: EventType): EventTypeResponseDto {
-    return {
-      id: eventType.id,
-      name: eventType.name,
-      description: eventType.description,
-      isActive: eventType.isActive,
-      createdAt: eventType.createdAt,
-      updatedAt: eventType.updatedAt,
-    };
-  }
-
-  private normalizeName(name: string): string {
-    return name.trim();
-  }
-
-  private getCurrentUserId(): string {
-    const userId = RequestContext.get('userId');
-
-    if (!userId) {
-      throw new UnauthorizedException('Authenticated user id is missing');
+  private async ensureEventTypeNameIsUnique(name?: string, excludeId?: string) {
+    if (name === undefined) {
+      return;
     }
 
-    return userId;
+    const duplicateEventType = await this.eventTypeRepository.findByName(
+      name,
+      excludeId,
+    );
+
+    if (duplicateEventType) {
+      throw new ConflictException(
+        'An event type with this name already exists',
+      );
+    }
   }
 }
