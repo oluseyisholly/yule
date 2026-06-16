@@ -39,6 +39,7 @@ import {
   SortOrder,
 } from 'src/dtos/general.dto';
 import {
+  ClaimedGiftIdsResponseEnvelopeDto,
   FindGiftsQueryDto,
   PaginatedGiftsResponseEnvelopeDto,
 } from 'src/dtos/gift.dto';
@@ -102,6 +103,7 @@ export class WishlistEventController {
     return this.wishlistEventService.findAllWishlistEvents(query);
   }
 
+  @Public()
   @Get(':id/gifts')
   @ApiOperation({
     summary: 'Get paginated creator gifts for a wishlist event',
@@ -123,12 +125,28 @@ export class WishlistEventController {
     type: PaginatedGiftsResponseEnvelopeDto,
   })
   @ApiNotFoundResponse({ description: 'Wishlist event not found' })
-  @ApiUnauthorizedResponse({ description: 'Missing or invalid JWT token' })
   findWishlistEventGifts(
     @Param('id') id: string,
     @Query() query: FindGiftsQueryDto,
   ): Promise<StandardResopnse<PaginatedRecordsDto<EventGift>>> {
     return this.giftService.findWishlistEventGifts(id, query);
+  }
+
+  @Public()
+  @Get(':id/gifts/claimed-ids')
+  @ApiOperation({
+    summary: 'Get claimed gift ids for a wishlist event without pagination',
+  })
+  @ApiParam({ name: 'id', description: 'Wishlist event id' })
+  @ApiOkResponse({
+    description: 'Claimed gift ids fetched successfully',
+    type: ClaimedGiftIdsResponseEnvelopeDto,
+  })
+  @ApiNotFoundResponse({ description: 'Wishlist event not found' })
+  findWishlistEventClaimedGiftIds(
+    @Param('id') id: string,
+  ): Promise<StandardResopnse<string[]>> {
+    return this.giftService.findClaimedGiftIdsByWishlistEventId(id);
   }
 
   @Public()
@@ -201,6 +219,23 @@ export class WishlistEventController {
       id,
       updateWishlistEventDto,
     );
+  }
+
+  @Patch(':id/complete')
+  @ApiOperation({
+    summary: 'Complete a wishlist event and move it to ongoing status',
+  })
+  @ApiParam({ name: 'id', description: 'Wishlist event id' })
+  @ApiOkResponse({
+    description: 'Wishlist event completed successfully',
+    type: WishlistEventResponseEnvelopeDto,
+  })
+  @ApiNotFoundResponse({ description: 'Wishlist event not found' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid JWT token' })
+  completeWishlistEvent(
+    @Param('id') id: string,
+  ): Promise<StandardResopnse<WishlistEvent>> {
+    return this.wishlistEventService.completeWishlistEvent(id);
   }
 
   @Delete(':id')

@@ -1,4 +1,9 @@
-import { HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { StandardResopnse } from 'src/common';
 import { RequestContext } from 'src/common/context/requestContext';
 import {
@@ -17,6 +22,11 @@ import {
 import { WishlistEventRepository } from 'src/repositories/wishlist-event.repository';
 import { ParticipantRepository } from 'src/repositories/participant.repository';
 import { WishlistEvent } from 'src/entities/wishlist-event.entity';
+
+const WISHLIST_EVENT_STATUS = {
+  ONGOING: 'ongoing',
+  COMPLETED: 'completed',
+} as const;
 
 @Injectable()
 export class WishlistEventService {
@@ -162,10 +172,41 @@ export class WishlistEventService {
     };
   }
 
+  async completeWishlistEvent(
+    wishlistEventId: string,
+  ): Promise<StandardResopnse<WishlistEvent>> {
+    const currentContactId = RequestContext.getCurrentContactId();
+    const wishlistEvent = await this.getWishlistEventOrThrow(wishlistEventId);
+
+    await this.wishlistEventRepository.updateWishlistEvent(
+      wishlistEvent.id,
+      wishlistEvent.eventId,
+      {
+        event: {
+          status: WISHLIST_EVENT_STATUS.ONGOING,
+        },
+      },
+    );
+
+    const updatedWishlistEvent =
+      await this.wishlistEventRepository.findByIdForUser(
+        wishlistEvent.id,
+        currentContactId,
+      );
+
+    return {
+      code: HttpStatus.OK,
+      message: 'Wishlist event completed successfully',
+      data: updatedWishlistEvent as WishlistEvent,
+    };
+  }
+
   async deleteWishlistEvent(
     wishlistEventId: string,
   ): Promise<StandardResopnse<DeleteResponseDto>> {
     const wishlistEvent = await this.getWishlistEventOrThrow(wishlistEventId);
+
+    this.ensureWishlistEventCanBeDeleted(wishlistEvent);
 
     await this.wishlistEventRepository.deleteWishlistEvent(
       wishlistEvent.id,
@@ -177,6 +218,10 @@ export class WishlistEventService {
       message: 'Wishlist event deleted successfully',
       data: { id: wishlistEventId },
     };
+  }
+
+  async completeExpiredOngoingWishlistEvents(): Promise<number> {
+    return this.wishlistEventRepository.completeExpiredOngoingWishlistEvents();
   }
 
   private async getWishlistEventOrThrow(
@@ -213,6 +258,17 @@ export class WishlistEventService {
     );
 
     return hasWishlistEventValue ? wishlistEventPayload : undefined;
+  }
+
+  private ensureWishlistEventCanBeDeleted(wishlistEvent: WishlistEvent) {
+    if (
+      wishlistEvent.event?.status?.toLowerCase() ===
+      WISHLIST_EVENT_STATUS.ONGOING
+    ) {
+      throw new BadRequestException(
+        'Wishlist event cannot be deleted while it is ongoing',
+      );
+    }
   }
 
   private toPublicWishlistEventResponse(

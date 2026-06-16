@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { configService } from './config/config.service';
 import { AppController } from './app.controller';
@@ -54,10 +55,15 @@ import { ParticipantService } from './services/participant.service';
 import { UserService } from './services/user.services';
 import { EmailService } from './services/email.service';
 import { WishlistEventService } from './services/wishlist-event.service';
+import { SchedulerService } from './services/scheduler.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot(configService.createTypeOrmOptions()),
+    TypeOrmModule.forRoot({
+      ...configService.createTypeOrmOptions(),
+      autoLoadEntities: true,
+    }),
+    ScheduleModule.forRoot(),
     TypeOrmModule.forFeature([
       User,
       Contact,
@@ -131,6 +137,7 @@ import { WishlistEventService } from './services/wishlist-event.service';
     UserRepository,
     WishlistEventService,
     WishlistEventRepository,
+    SchedulerService,
   ],
 })
 export class AppModule {}

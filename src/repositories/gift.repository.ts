@@ -37,6 +37,7 @@ export class GiftRepository extends BaseRepository<EventGift> {
         'event.eventTypeId',
         'event.eventDate',
         'event.status',
+        'event.createdById',
         'recipientParticipant',
         'giverParticipant',
       ]);
@@ -77,27 +78,12 @@ export class GiftRepository extends BaseRepository<EventGift> {
 
   async findWishlistEventGifts(
     wishlistEventId: string,
-    contactId: string,
     query: FindGiftsQueryDto,
   ): Promise<PaginatedRecordsDto<EventGift>> {
     const qb = this.createGiftBaseQuery()
       .innerJoin(WishlistEvent, 'wishlistEvent', 'wishlistEvent.event_id = event.id')
-      .leftJoin(
-        EventParticipant,
-        'currentParticipant',
-        `
-          currentParticipant.event_id = gift.event_id
-          AND currentParticipant.event_contact_id = :contactId
-        `,
-      )
       .where('wishlistEvent.id = :wishlistEventId', { wishlistEventId })
-      .andWhere('recipientParticipant.event_contact_id = event.created_by_id')
-      .andWhere(
-        new Brackets((subQuery) => {
-          subQuery.where('event.created_by_id = :contactId', { contactId });
-          subQuery.orWhere('currentParticipant.id IS NOT NULL');
-        }),
-      );
+      .andWhere('recipientParticipant.event_contact_id = event.created_by_id');
     const helper = new QueryBuilderHelper(qb);
 
     helper
@@ -107,6 +93,23 @@ export class GiftRepository extends BaseRepository<EventGift> {
     this.applyGiftSearch(qb, query.searchQuery);
 
     return helper.paginate(query);
+  }
+
+  async findClaimedGiftIdsByWishlistEventId(
+    wishlistEventId: string,
+  ): Promise<string[]> {
+    const rows = await this.repo
+      .createQueryBuilder('gift')
+      .innerJoin('gift.event', 'event')
+      .innerJoin(WishlistEvent, 'wishlistEvent', 'wishlistEvent.event_id = event.id')
+      .innerJoin('gift.recipientParticipant', 'recipientParticipant')
+      .select('gift.id', 'id')
+      .where('wishlistEvent.id = :wishlistEventId', { wishlistEventId })
+      .andWhere('recipientParticipant.event_contact_id = event.created_by_id')
+      .andWhere('gift.giver_participant_id IS NOT NULL')
+      .getRawMany<{ id: string }>();
+
+    return rows.map((row) => row.id);
   }
 
   async findParticipantGiftsReadableByContact(
@@ -136,6 +139,7 @@ export class GiftRepository extends BaseRepository<EventGift> {
         'event.eventTypeId',
         'event.eventDate',
         'event.status',
+        'event.createdById',
         'recipientParticipant',
         'giverParticipant',
       ])

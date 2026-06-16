@@ -17,6 +17,10 @@ import {
   UpdateGiftDto,
 } from 'src/dtos/gift.dto';
 import { EventGift } from 'src/entities/gift.entity';
+import {
+  EventParticipant,
+  EventParticipantRole,
+} from 'src/entities/event-participant.entity';
 import { DrawNameEventRepository } from 'src/repositories/draw-name-event.repository';
 import { GiftRepository } from 'src/repositories/gift.repository';
 import { ParticipantRepository } from 'src/repositories/participant.repository';
@@ -128,10 +132,8 @@ export class GiftService {
     wishlistEventId: string,
     query: FindGiftsQueryDto,
   ): Promise<StandardResopnse<PaginatedRecordsDto<EventGift>>> {
-    const currentContactId = RequestContext.getCurrentContactId();
     const paginatedGifts = await this.giftRepository.findWishlistEventGifts(
       wishlistEventId,
-      currentContactId,
       query,
     );
 
@@ -139,6 +141,21 @@ export class GiftService {
       code: HttpStatus.OK,
       message: 'Wishlist event gifts fetched successfully',
       data: paginatedGifts,
+    };
+  }
+
+  async findClaimedGiftIdsByWishlistEventId(
+    wishlistEventId: string,
+  ): Promise<StandardResopnse<string[]>> {
+    const claimedGiftIds =
+      await this.giftRepository.findClaimedGiftIdsByWishlistEventId(
+        wishlistEventId,
+      );
+
+    return {
+      code: HttpStatus.OK,
+      message: 'Claimed gift ids fetched successfully',
+      data: claimedGiftIds,
     };
   }
 
@@ -295,14 +312,13 @@ export class GiftService {
       throw new NotFoundException('Gift not found');
     }
 
-    const currentParticipant =
-      await this.participantRepository.findByEventIdAndContactId(
-        gift.eventId,
-        currentContactId,
-      );
+    const currentParticipant = await this.findOrCreateParticipantForGiftClaim(
+      gift.eventId,
+      currentContactId,
+    );
 
-    if (!currentParticipant) {
-      throw new NotFoundException('Participant not found for this event');
+    if (gift.event?.createdById === currentContactId) {
+      throw new BadRequestException('You cannot claim your own gift');
     }
 
     if (gift.recipientParticipantId === currentParticipant.id) {
@@ -339,6 +355,29 @@ export class GiftService {
       message: 'Gift claimed successfully',
       data: claimedGift as EventGift,
     };
+  }
+
+  private async findOrCreateParticipantForGiftClaim(
+    eventId: string,
+    currentContactId: string,
+  ): Promise<EventParticipant> {
+    const existingParticipant =
+      await this.participantRepository.findByEventIdAndContactId(
+        eventId,
+        currentContactId,
+      );
+
+    if (existingParticipant) {
+      return existingParticipant;
+    }
+
+    return this.participantRepository.create({
+      eventId,
+      eventContactId: currentContactId,
+      role: EventParticipantRole.PARTICIPANT,
+      isNotified: false,
+      isPairActive: false,
+    });
   }
 
   async updateGift(

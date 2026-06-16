@@ -18,7 +18,7 @@ import { QueryBuilderHelper } from 'src/utils/queryBuilder.utils';
 import { BaseRepository } from './base.repository';
 
 type UpdateWishlistEventRepositoryPayload = {
-  event?: UpdateWishlistEventBaseEventDto;
+  event?: UpdateWishlistEventBaseEventDto & { status?: string };
   wishlistEvent?: UpdateWishlistEventDetailsDto;
 };
 
@@ -77,8 +77,7 @@ export class WishlistEventRepository extends BaseRepository<WishlistEvent> {
     query: FindWishlistEventsQueryDto,
     contactId: string,
   ): Promise<PaginatedRecordsDto<WishlistEvent>> {
-    const qb = this.createWishlistEventBaseQuery()
-      .where('event.created_by_id = :contactId', { contactId });
+    const qb = this.createWishlistEventBaseQuery(contactId);
 
     const helper = new QueryBuilderHelper(qb);
 
@@ -103,6 +102,8 @@ export class WishlistEventRepository extends BaseRepository<WishlistEvent> {
       );
     }
 
+    this.applyReadableByContactFilter(qb, contactId);
+
     return helper.paginate(query);
   }
 
@@ -110,10 +111,12 @@ export class WishlistEventRepository extends BaseRepository<WishlistEvent> {
     id: string,
     contactId: string,
   ): Promise<WishlistEvent | null> {
-    return this.createWishlistEventBaseQuery()
-      .where('wishlistEvent.id = :id', { id })
-      .andWhere('event.created_by_id = :contactId', { contactId })
-      .getOne();
+    const qb = this.createWishlistEventBaseQuery(contactId)
+      .where('wishlistEvent.id = :id', { id });
+
+    this.applyReadableByContactFilter(qb, contactId);
+
+    return qb.getOne();
   }
 
   findByIdUnscoped(id: string): Promise<WishlistEvent | null> {
@@ -156,7 +159,36 @@ export class WishlistEventRepository extends BaseRepository<WishlistEvent> {
     });
   }
 
-  private createWishlistEventBaseQuery() {
+  async completeExpiredOngoingWishlistEvents(now = new Date()): Promise<number> {
+    const expiredWishlistEvents = await this.repo
+      .createQueryBuilder('wishlistEvent')
+      .innerJoin('wishlistEvent.event', 'event')
+      .select('wishlistEvent.eventId', 'eventId')
+      .where('LOWER(event.status) = :ongoingStatus', {
+        ongoingStatus: 'ongoing',
+      })
+      .andWhere('wishlistEvent.eventDeadline IS NOT NULL')
+      .andWhere('wishlistEvent.eventDeadline < :now', { now })
+      .getRawMany<{ eventId: string }>();
+
+    const eventIds = expiredWishlistEvents.map((event) => event.eventId);
+
+    if (!eventIds.length) {
+      return 0;
+    }
+
+    const result = await this.dataSource
+      .getRepository(Event)
+      .createQueryBuilder()
+      .update(Event)
+      .set({ status: 'completed' })
+      .where('id IN (:...eventIds)', { eventIds })
+      .execute();
+
+    return result.affected ?? 0;
+  }
+
+  private createWishlistEventBaseQuery(contactId?: string) {
     return this.repo
       .createQueryBuilder('wishlistEvent')
       .innerJoinAndSelect('wishlistEvent.event', 'event')
@@ -164,8 +196,22 @@ export class WishlistEventRepository extends BaseRepository<WishlistEvent> {
       .leftJoinAndSelect(
         'event.participants',
         'participant',
-        'participant.role != :creatorRole',
-        { creatorRole: 'creator' },
+        contactId
+          ? `
+            (
+              event.created_by_id = :contactId
+              AND participant.event_contact_id != :contactId
+            )
+            OR (
+              event.created_by_id != :contactId
+              AND (
+                participant.event_contact_id = :contactId
+                OR participant.event_contact_id = event.created_by_id
+              )
+            )
+          `
+          : undefined,
+        contactId ? { contactId } : undefined,
       )
       .leftJoinAndSelect('participant.eventContact', 'participantContact')
       .select([
@@ -193,5 +239,33 @@ export class WishlistEventRepository extends BaseRepository<WishlistEvent> {
         'participantContact.lastName',
         'participantContact.email',
       ]);
+  }
+
+  private applyReadableByContactFilter(
+    qb: ReturnType<Repository<WishlistEvent>['createQueryBuilder']>,
+    contactId: string,
+  ) {
+    qb.andWhere(
+      new Brackets((subQuery) => {
+        subQuery.where('event.created_by_id = :contactId', { contactId });
+        subQuery.orWhere(
+          `EXISTS ${this.createParticipantAccessSubQuery(qb)}`,
+          { contactId },
+        );
+      }),
+    );
+  }
+
+  private createParticipantAccessSubQuery(
+    qb: ReturnType<Repository<WishlistEvent>['createQueryBuilder']>,
+  ) {
+    return qb
+      .subQuery()
+      .select('1')
+      .from(EventParticipant, 'accessParticipant')
+      .where('accessParticipant.event_id = event.id')
+      .andWhere('accessParticipant.event_contact_id = :contactId')
+      .andWhere('accessParticipant.deleted_at IS NULL')
+      .getQuery();
   }
 }

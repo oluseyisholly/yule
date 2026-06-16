@@ -184,6 +184,31 @@ export class FindGiftsQueryDto extends IntersectionType(
   GiftFilterDto,
 ) {}
 
+export class GiftParticipantContactResponseDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  firstName: string;
+
+  @ApiProperty()
+  lastName: string;
+
+  @ApiPropertyOptional()
+  email?: string;
+}
+
+export class GiftParticipantResponseDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiPropertyOptional()
+  eventContactId?: string;
+
+  @ApiPropertyOptional({ type: GiftParticipantContactResponseDto })
+  eventContact?: GiftParticipantContactResponseDto;
+}
+
 export class GiftResponseDto {
   @ApiProperty()
   id: string;
@@ -235,6 +260,12 @@ export class GiftResponseDto {
 
   @ApiPropertyOptional()
   productSlug?: string;
+
+  @ApiPropertyOptional({ type: GiftParticipantResponseDto })
+  recipientParticipant?: GiftParticipantResponseDto;
+
+  @ApiPropertyOptional({ type: GiftParticipantResponseDto })
+  giverParticipant?: GiftParticipantResponseDto;
 
   @ApiProperty()
   createdAt: Date;
@@ -305,6 +336,20 @@ export class GiftSelectionsResponseEnvelopeDto {
 
   @ApiProperty({ type: [GiftSelectionResponseDto] })
   data: GiftSelectionResponseDto[];
+}
+
+export class ClaimedGiftIdsResponseEnvelopeDto {
+  @ApiProperty({ example: 200 })
+  code: number;
+
+  @ApiProperty({ example: 'Claimed gift ids fetched successfully' })
+  message: string;
+
+  @ApiProperty({
+    type: [String],
+    example: ['8b2dd47f-2c53-43d9-a806-1c44d0f142e7'],
+  })
+  data: string[];
 }
 
 export class GiftDeleteResponseEnvelopeDto extends createResponseDto(
