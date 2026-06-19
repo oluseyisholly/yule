@@ -109,6 +109,25 @@ export class EventContactRepository {
     });
   }
 
+  async findConnectedContactById(
+    id: string,
+    ownerContactId: string,
+  ): Promise<Contact | null> {
+    return this.contactRepo
+      .createQueryBuilder('contact')
+      .innerJoin(
+        ContactConnection,
+        'connection',
+        'connection.contact_id = contact.id',
+      )
+      .where('contact.id = :id', { id })
+      .andWhere('connection.owner_contact_id = :ownerContactId', {
+        ownerContactId,
+      })
+      .andWhere('contact.deleted_at IS NULL')
+      .getOne();
+  }
+
   async findConnectedContactByEmail(
     email: string,
     ownerContactId: string,

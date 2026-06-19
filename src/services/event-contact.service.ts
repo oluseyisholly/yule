@@ -124,7 +124,7 @@ export class EventContactService {
     updateEventContactDto: UpdateEventContactDto,
   ): Promise<StandardResopnse<Contact>> {
     const ownerContactId = RequestContext.getCurrentContactId();
-    const contact = await this.getOwnedContactOrThrow(id, ownerContactId);
+    const contact = await this.getConnectedContactOrThrow(id, ownerContactId);
 
     await this.ensurePhoneNumberIsAvailable(
       updateEventContactDto.phoneNumber,
@@ -148,7 +148,7 @@ export class EventContactService {
     id: string,
   ): Promise<StandardResopnse<DeleteResponseDto>> {
     const ownerContactId = RequestContext.getCurrentContactId();
-    const contact = await this.getOwnedContactOrThrow(id, ownerContactId);
+    const contact = await this.getConnectedContactOrThrow(id, ownerContactId);
 
     if (contact.id === ownerContactId) {
       throw new BadRequestException('You cannot delete your own contact');
@@ -251,11 +251,11 @@ export class EventContactService {
     };
   }
 
-  private async getOwnedContactOrThrow(
+  private async getConnectedContactOrThrow(
     id: string,
     ownerContactId: string,
   ): Promise<Contact> {
-    const contact = await this.eventContactRepository.findOwnedContactById(
+    const contact = await this.eventContactRepository.findConnectedContactById(
       id,
       ownerContactId,
     );
