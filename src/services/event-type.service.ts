@@ -26,9 +26,10 @@ export class EventTypeService {
   async createEventType(
     createEventTypeDto: CreateEventTypeDto,
   ): Promise<StandardResopnse<EventTypeResponseDto>> {
-    RequestContext.getCurrentContactId();
+    const currentContactId = RequestContext.getCurrentContactId();
     const existingEventType = await this.eventTypeRepository.findByName(
       createEventTypeDto.name,
+      currentContactId,
     );
 
     if (existingEventType) {
@@ -139,8 +140,10 @@ export class EventTypeService {
       return;
     }
 
+    const currentContactId = RequestContext.getCurrentContactId();
     const duplicateEventType = await this.eventTypeRepository.findByName(
       name,
+      currentContactId,
       excludeId,
     );
 

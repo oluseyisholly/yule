@@ -18,11 +18,16 @@ export class EventTypeRepository extends BaseRepository<EventType> {
 
   async findByName(
     name: string,
+    userId?: string,
     excludeId?: string,
   ): Promise<EventType | null> {
     const qb = this.repo.createQueryBuilder('eventType');
 
     qb.where('LOWER(eventType.name) = LOWER(:name)', { name });
+
+    if (userId) {
+      qb.andWhere('eventType.created_by_id = :userId', { userId });
+    }
 
     if (excludeId) {
       qb.andWhere('eventType.id != :excludeId', { excludeId });
