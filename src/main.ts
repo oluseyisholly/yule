@@ -36,18 +36,22 @@ async function bootstrap() {
     }),
   );
 
-  const options = new DocumentBuilder()
-    .setTitle('Yule API')
-    .setDescription('Your API description')
-    .setVersion('1.0')
+  const shouldEnableSwagger = process.env.ENABLE_SWAGGER === 'true';
 
-    .addTag('Your API Tag')
-    .addBearerAuth()
-    .build();
+  if (shouldEnableSwagger) {
+    const options = new DocumentBuilder()
+      .setTitle('Yule API')
+      .setDescription('Your API description')
+      .setVersion('1.0')
 
-  const document = SwaggerModule.createDocument(app, options);
-  SwaggerModule.setup('api-docs', app, document);
+      .addTag('Your API Tag')
+      .addBearerAuth()
+      .build();
 
-  await app.listen(process.env.PORT);
+    const document = SwaggerModule.createDocument(app, options);
+    SwaggerModule.setup('api-docs', app, document);
+  }
+
+  await app.listen(process.env.PORT || 3009);
 }
 bootstrap();
