@@ -30,8 +30,6 @@ export class RequestContext {
   static getCurrentUserId(): string {
     const userId = this.get('userId');
 
-    console.log('Retrieving current user ID from context:', userId);
-
     if (!userId) {
       throw new UnauthorizedException('Authenticated user id is missing');
     }

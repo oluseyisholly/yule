@@ -214,6 +214,9 @@ export class ParticipantRepository extends BaseRepository<EventParticipant> {
       ])
       .where('participant.event_id = :eventId', { eventId })
       .andWhere('event.created_by_id = :ownerContactId', { ownerContactId })
+      .andWhere('participant.role != :creatorRole', {
+        creatorRole: EventParticipantRole.CREATOR,
+      })
       .getMany();
   }
 

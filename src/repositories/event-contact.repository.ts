@@ -11,7 +11,6 @@ import { PaginatedRecordsDto } from 'src/dtos/general.dto';
 import { Gender } from 'src/common/index.enum';
 import { ContactConnection } from 'src/entities/contact-connection.entity';
 import { Contact } from 'src/entities/contact.entity';
-import { User } from 'src/entities/user.entity';
 import { QueryBuilderHelper } from 'src/utils/queryBuilder.utils';
 
 export type AuthContactPayload = {
@@ -44,23 +43,6 @@ export class EventContactRepository {
     await this.ensureContactConnection(ownerContactId, savedContact.id);
 
     return savedContact;
-  }
-
-  async createContactFromUser(user: User): Promise<Contact> {
-    const contact = await this.contactRepo.save(
-      this.contactRepo.create({
-        firstName: user.firstName,
-        lastName: user.lastName,
-        phoneNumber: user.phoneNumber,
-        email: user.email,
-        gender: Gender.MALE,
-        userId: user.id,
-      }),
-    );
-
-    contact.createdById = contact.id;
-
-    return this.contactRepo.save(contact);
   }
 
   async createContactFromAuthPayload(

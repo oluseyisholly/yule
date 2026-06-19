@@ -19,11 +19,11 @@ import {
   AuthContactPayload,
   EventContactRepository,
 } from 'src/repositories/event-contact.repository';
-import { UserRepository } from 'src/repositories/user.repositoty';
 
 type AuthUserPayload = {
   sub?: string;
   id?: string;
+  profileId?: string;
   firstName?: string;
   lastName?: string;
   email?: string;
@@ -34,7 +34,6 @@ type AuthUserPayload = {
 export class EventContactService {
   constructor(
     private readonly eventContactRepository: EventContactRepository,
-    private readonly userRepository: UserRepository,
   ) {}
 
   async createEventContact(
@@ -83,10 +82,10 @@ export class EventContactService {
       syncEventContactDto.email,
     );
 
-    await this.ensurePhoneNumberIsAvailable(
-      syncEventContactDto.phoneNumber,
-      existingContact?.id,
-    );
+    // await this.ensurePhoneNumberIsAvailable(
+    //   syncEventContactDto.phoneNumber,
+    //   existingContact?.id,
+    // );
 
     if (existingContact) {
       const updatedContact =
@@ -192,13 +191,6 @@ export class EventContactService {
   ): Promise<Contact> {
     const currentContactId = RequestContext.get('currentContactId');
 
-    console.log(
-      'Current contact id from request context:',
-      currentContactId,
-      userId,
-      authUser,
-    );
-
     if (!userId && currentContactId) {
       const currentContact =
         await this.eventContactRepository.findById(currentContactId);
@@ -209,7 +201,6 @@ export class EventContactService {
     }
 
     const currentUserId = userId ?? RequestContext.getCurrentUserId();
-
     const existingContact =
       await this.eventContactRepository.findByUserId(currentUserId);
 
@@ -219,13 +210,10 @@ export class EventContactService {
       return existingContact;
     }
 
-    const user = await this.userRepository.findById(currentUserId);
-
-    const contact = user
-      ? await this.eventContactRepository.createContactFromUser(user)
-      : await this.eventContactRepository.createContactFromAuthPayload(
-          this.toAuthContactPayload(currentUserId, authUser),
-        );
+    const contact =
+      await this.eventContactRepository.createContactFromAuthPayload(
+        this.toAuthContactPayload(currentUserId, authUser),
+      );
 
     RequestContext.set('currentContactId', contact.id);
 
