@@ -30,6 +30,8 @@ import {
   EnsuredMeContactResponseEnvelopeDto,
   FindEventContactsQueryDto,
   PaginatedEventContactsResponseEnvelopeDto,
+  SyncedEventContactResponseEnvelopeDto,
+  SyncEventContactDto,
   UpdatedEventContactResponseEnvelopeDto,
   UpdateEventContactDto,
 } from 'src/dtos/event-contact.dto';
@@ -67,6 +69,22 @@ export class EventContactController {
   @ApiUnauthorizedResponse({ description: 'Missing or invalid JWT token' })
   getCurrentContactId(): Promise<StandardResopnse<{ contactId: string }>> {
     return this.eventContactService.getCurrentContactId();
+  }
+
+  @Post('sync')
+  @ApiOperation({ summary: 'Sync a contact profile by email' })
+  @ApiOkResponse({
+    description: 'Event contact synced successfully',
+    type: SyncedEventContactResponseEnvelopeDto,
+  })
+  @ApiConflictResponse({
+    description: 'A contact with this phone number already exists',
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid JWT token' })
+  syncEventContact(
+    @Body() syncEventContactDto: SyncEventContactDto,
+  ): Promise<StandardResopnse<Contact>> {
+    return this.eventContactService.syncEventContact(syncEventContactDto);
   }
 
   @Post()

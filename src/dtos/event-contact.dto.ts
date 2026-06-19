@@ -58,6 +58,16 @@ export class CreateEventContactDto {
 
 export class UpdateEventContactDto extends PartialType(CreateEventContactDto) {}
 
+export class SyncEventContactDto extends CreateEventContactDto {
+  @ApiProperty({
+    description: 'External auth user id to link to this contact',
+  })
+  @Trim()
+  @IsNotEmpty()
+  @IsString()
+  userId: string;
+}
+
 export class EventContactFilterDto extends BaseFilterDto {
   @ApiPropertyOptional({ enum: Gender })
   @Trim()
@@ -89,6 +99,9 @@ export class EventContactResponseDto {
 
   @ApiPropertyOptional()
   phoneNumber?: string;
+
+  @ApiPropertyOptional()
+  userId?: string;
 
   @ApiPropertyOptional()
   note?: string;
@@ -125,6 +138,14 @@ export class UpdatedEventContactResponseEnvelopeDto extends createResponseDto(
   {
     codeExample: 200,
     messageExample: 'Event contact updated successfully',
+  },
+) {}
+
+export class SyncedEventContactResponseEnvelopeDto extends createResponseDto(
+  EventContactResponseDto,
+  {
+    codeExample: 200,
+    messageExample: 'Event contact synced successfully',
   },
 ) {}
 

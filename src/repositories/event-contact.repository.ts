@@ -4,6 +4,7 @@ import { Brackets, Repository } from 'typeorm';
 import {
   CreateEventContactDto,
   FindEventContactsQueryDto,
+  SyncEventContactDto,
   UpdateEventContactDto,
 } from 'src/dtos/event-contact.dto';
 import { PaginatedRecordsDto } from 'src/dtos/general.dto';
@@ -160,7 +161,7 @@ export class EventContactRepository {
 
   async updateEventContact(
     id: string,
-    updateEventContactDto: UpdateEventContactDto,
+    updateEventContactDto: UpdateEventContactDto | SyncEventContactDto,
     ownerContactId: string,
   ): Promise<Contact> {
     await this.contactRepo.update(id, {

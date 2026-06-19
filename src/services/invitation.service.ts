@@ -15,22 +15,30 @@ import {
   FindInvitationsQueryDto,
   InvitationContactResponseDto,
   InvitationResponseDto,
+  SendGiftingEventInvitationsDto,
   SendInvitationDto,
   SendInvitationsResponseDto,
+  SendWishlistEventInvitationsDto,
 } from 'src/dtos/invitation.dto';
 import { PaginatedRecordsDto } from 'src/dtos/general.dto';
 import { Contact } from 'src/entities/contact.entity';
-import { EventParticipant } from 'src/entities/event-participant.entity';
+import {
+  EventParticipant,
+  EventParticipantRole,
+} from 'src/entities/event-participant.entity';
 import {
   Invitation,
   InvitationChannel,
+  InvitationEventType,
   InvitationStatus,
 } from 'src/entities/invitation.entity';
 import { DrawNameEventRepository } from 'src/repositories/draw-name-event.repository';
 import { EventContactRepository } from 'src/repositories/event-contact.repository';
+import { GiftingEventRepository } from 'src/repositories/gifting-event.repository';
 import { InvitationRepository } from 'src/repositories/invitation.repository';
 import { ParticipantRepository } from 'src/repositories/participant.repository';
 import { UserRepository } from 'src/repositories/user.repositoty';
+import { WishlistEventRepository } from 'src/repositories/wishlist-event.repository';
 import { EmailService } from './email.service';
 
 type ClaimInvitationResponse = {
@@ -45,6 +53,19 @@ type ClaimInvitationResponse = {
   redirectPath: string;
 };
 
+type CreateInvitationContext = {
+  eventType: InvitationEventType;
+  eventId: string;
+  eventTitle?: string;
+  drawNameEventId?: string | null;
+  wishlistEventId?: string | null;
+  giftingEventId?: string | null;
+  participant?: EventParticipant;
+  contact: Contact;
+  channel: InvitationChannel;
+  ownerContactId: string;
+};
+
 @Injectable()
 export class InvitationService {
   private readonly saltRounds = 10;
@@ -52,6 +73,8 @@ export class InvitationService {
   constructor(
     private readonly invitationRepository: InvitationRepository,
     private readonly drawNameEventRepository: DrawNameEventRepository,
+    private readonly wishlistEventRepository: WishlistEventRepository,
+    private readonly giftingEventRepository: GiftingEventRepository,
     private readonly participantRepository: ParticipantRepository,
     private readonly eventContactRepository: EventContactRepository,
     private readonly userRepository: UserRepository,
@@ -82,12 +105,20 @@ export class InvitationService {
 
     for (const participant of participants) {
       try {
-        const invitation = await this.createAndSendInvitation(
-          drawNameEvent.id,
+        if (!participant.eventContact) {
+          throw new BadRequestException('Participant does not have a contact');
+        }
+
+        const invitation = await this.createAndSendInvitation({
+          eventType: InvitationEventType.DRAW_NAME,
+          eventId: drawNameEvent.eventId,
+          eventTitle: drawNameEvent.event?.title,
+          drawNameEventId: drawNameEvent.id,
           participant,
-          sendInvitationDto.channel,
+          contact: participant.eventContact,
+          channel: sendInvitationDto.channel,
           ownerContactId,
-        );
+        });
 
         sent.push(this.toInvitationResponse(invitation));
       } catch (error) {
@@ -105,6 +136,68 @@ export class InvitationService {
       code: HttpStatus.OK,
       message: 'Invitations sent successfully',
       data: { sent, skipped },
+    };
+  }
+
+  async sendWishlistEventInvitations(
+    wishlistEventId: string,
+    sendInvitationDto: SendWishlistEventInvitationsDto,
+  ): Promise<StandardResopnse<SendInvitationsResponseDto>> {
+    const ownerContactId = RequestContext.getCurrentContactId();
+    const wishlistEvent = await this.wishlistEventRepository.findByIdForUser(
+      wishlistEventId,
+      ownerContactId,
+    );
+
+    if (!wishlistEvent) {
+      throw new NotFoundException('Wishlist event not found');
+    }
+
+    const data = await this.sendContactInvitations({
+      eventType: InvitationEventType.WISHLIST,
+      eventId: wishlistEvent.eventId,
+      eventTitle: wishlistEvent.event?.title,
+      wishlistEventId: wishlistEvent.id,
+      contactIds: sendInvitationDto.contactIds,
+      channel: sendInvitationDto.channel,
+      ownerContactId,
+    });
+
+    return {
+      code: HttpStatus.OK,
+      message: 'Invitations sent successfully',
+      data,
+    };
+  }
+
+  async sendGiftingEventInvitations(
+    giftingEventId: string,
+    sendInvitationDto: SendGiftingEventInvitationsDto,
+  ): Promise<StandardResopnse<SendInvitationsResponseDto>> {
+    const ownerContactId = RequestContext.getCurrentContactId();
+    const giftingEvent = await this.giftingEventRepository.findByIdForUser(
+      giftingEventId,
+      ownerContactId,
+    );
+
+    if (!giftingEvent) {
+      throw new NotFoundException('Gifting event not found');
+    }
+
+    const data = await this.sendContactInvitations({
+      eventType: InvitationEventType.GIFTING,
+      eventId: giftingEvent.eventId,
+      eventTitle: giftingEvent.event?.title,
+      giftingEventId: giftingEvent.id,
+      contactIds: sendInvitationDto.contactIds,
+      channel: sendInvitationDto.channel,
+      ownerContactId,
+    });
+
+    return {
+      code: HttpStatus.OK,
+      message: 'Invitations sent successfully',
+      data,
     };
   }
 
@@ -131,12 +224,20 @@ export class InvitationService {
       throw new NotFoundException('Draw name event not found');
     }
 
-    const invitation = await this.createAndSendInvitation(
-      drawNameEvent.id,
+    if (!participant.eventContact) {
+      throw new BadRequestException('Participant does not have a contact');
+    }
+
+    const invitation = await this.createAndSendInvitation({
+      eventType: InvitationEventType.DRAW_NAME,
+      eventId: drawNameEvent.eventId,
+      eventTitle: drawNameEvent.event?.title,
+      drawNameEventId: drawNameEvent.id,
       participant,
-      sendInvitationDto.channel,
+      contact: participant.eventContact,
+      channel: sendInvitationDto.channel,
       ownerContactId,
-    );
+    });
 
     return {
       code: HttpStatus.OK,
@@ -159,23 +260,59 @@ export class InvitationService {
       throw new NotFoundException('Draw name event not found');
     }
 
-    const invitations =
-      await this.invitationRepository.findAllForDrawNameEvent(
-        drawNameEvent.id,
-        ownerContactId,
-        query,
-      );
+    return this.findEventInvitations(
+      drawNameEvent.id,
+      ownerContactId,
+      InvitationEventType.DRAW_NAME,
+      query,
+      'drawNameEventId',
+    );
+  }
 
-    return {
-      code: HttpStatus.OK,
-      message: 'Invitations fetched successfully',
-      data: {
-        ...invitations,
-        data: invitations.data.map((invitation) =>
-          this.toInvitationResponse(invitation),
-        ),
-      },
-    };
+  async findWishlistEventInvitations(
+    wishlistEventId: string,
+    query: FindInvitationsQueryDto,
+  ): Promise<StandardResopnse<PaginatedRecordsDto<InvitationResponseDto>>> {
+    const ownerContactId = RequestContext.getCurrentContactId();
+    const wishlistEvent = await this.wishlistEventRepository.findByIdForUser(
+      wishlistEventId,
+      ownerContactId,
+    );
+
+    if (!wishlistEvent) {
+      throw new NotFoundException('Wishlist event not found');
+    }
+
+    return this.findEventInvitations(
+      wishlistEvent.id,
+      ownerContactId,
+      InvitationEventType.WISHLIST,
+      query,
+      'wishlistEventId',
+    );
+  }
+
+  async findGiftingEventInvitations(
+    giftingEventId: string,
+    query: FindInvitationsQueryDto,
+  ): Promise<StandardResopnse<PaginatedRecordsDto<InvitationResponseDto>>> {
+    const ownerContactId = RequestContext.getCurrentContactId();
+    const giftingEvent = await this.giftingEventRepository.findByIdForUser(
+      giftingEventId,
+      ownerContactId,
+    );
+
+    if (!giftingEvent) {
+      throw new NotFoundException('Gifting event not found');
+    }
+
+    return this.findEventInvitations(
+      giftingEvent.id,
+      ownerContactId,
+      InvitationEventType.GIFTING,
+      query,
+      'giftingEventId',
+    );
   }
 
   async findInvitationByToken(
@@ -188,7 +325,7 @@ export class InvitationService {
       message: 'Invitation fetched successfully',
       data: {
         ...this.toInvitationResponse(invitation),
-        redirectPath: this.getRedirectPath(invitation.drawNameEventId),
+        redirectPath: this.getRedirectPath(invitation),
       },
     };
   }
@@ -239,10 +376,14 @@ export class InvitationService {
             contact.id,
             user.id,
           );
+    const invitationWithParticipant =
+      await this.ensureInvitationParticipant(invitation, linkedContact);
     const acceptedInvitation =
-      invitation.status === InvitationStatus.ACCEPTED
-        ? invitation
-        : await this.invitationRepository.markAccepted(invitation.id);
+      invitationWithParticipant.status === InvitationStatus.ACCEPTED
+        ? invitationWithParticipant
+        : await this.invitationRepository.markAccepted(
+            invitationWithParticipant.id,
+          );
 
     return {
       code: HttpStatus.OK,
@@ -256,66 +397,176 @@ export class InvitationService {
           lastName: user.lastName,
           email: user.email,
         },
-        redirectPath: this.getRedirectPath(invitation.drawNameEventId),
+        redirectPath: this.getRedirectPath(acceptedInvitation),
+      },
+    };
+  }
+
+  private async sendContactInvitations(params: {
+    eventType: InvitationEventType;
+    eventId: string;
+    eventTitle?: string;
+    wishlistEventId?: string;
+    giftingEventId?: string;
+    contactIds: string[];
+    channel: InvitationChannel;
+    ownerContactId: string;
+  }): Promise<SendInvitationsResponseDto> {
+    const contactIds = Array.from(new Set(params.contactIds));
+    const contacts = await this.participantRepository.findContactsByIdsForUser(
+      contactIds,
+      params.ownerContactId,
+    );
+    const contactsById = new Map(contacts.map((contact) => [contact.id, contact]));
+    const sent: InvitationResponseDto[] = [];
+    const skipped: SendInvitationsResponseDto['skipped'] = [];
+
+    for (const contactId of contactIds) {
+      const contact = contactsById.get(contactId);
+
+      if (!contact) {
+        skipped.push({
+          contactId,
+          reason: 'Contact not found for current user',
+        });
+        continue;
+      }
+
+      try {
+        const invitation = await this.createAndSendInvitation({
+          eventType: params.eventType,
+          eventId: params.eventId,
+          eventTitle: params.eventTitle,
+          wishlistEventId: params.wishlistEventId,
+          giftingEventId: params.giftingEventId,
+          contact,
+          channel: params.channel,
+          ownerContactId: params.ownerContactId,
+        });
+
+        sent.push(this.toInvitationResponse(invitation));
+      } catch (error) {
+        skipped.push({
+          contactId,
+          reason:
+            error instanceof Error
+              ? error.message
+              : 'Invitation could not be sent',
+        });
+      }
+    }
+
+    return { sent, skipped };
+  }
+
+  private async findEventInvitations(
+    eventTypeId: string,
+    ownerContactId: string,
+    eventType: InvitationEventType,
+    query: FindInvitationsQueryDto,
+    eventTypeColumn: 'drawNameEventId' | 'wishlistEventId' | 'giftingEventId',
+  ): Promise<StandardResopnse<PaginatedRecordsDto<InvitationResponseDto>>> {
+    const invitations = await this.invitationRepository.findAllForEvent(
+      eventTypeId,
+      ownerContactId,
+      eventType,
+      query,
+      eventTypeColumn,
+    );
+
+    return {
+      code: HttpStatus.OK,
+      message: 'Invitations fetched successfully',
+      data: {
+        ...invitations,
+        data: invitations.data.map((invitation) =>
+          this.toInvitationResponse(invitation),
+        ),
       },
     };
   }
 
   private async createAndSendInvitation(
-    drawNameEventId: string,
-    participant: EventParticipant,
-    channel: InvitationChannel,
-    ownerContactId: string,
+    context: CreateInvitationContext,
   ): Promise<Invitation> {
-    const contact = participant.eventContact;
-    this.ensureParticipantCanReceiveInvite(participant, channel);
+    this.ensureContactCanReceiveInvite(context.contact, context.channel);
 
     const token = randomBytes(32).toString('hex');
     const inviteUrl = this.buildInviteUrl(token);
-    const invitation =
-      await this.invitationRepository.createOrReuseForParticipant({
-        drawNameEventId,
-        eventId: participant.eventId,
-        participantId: participant.id,
-        eventContactId: participant.eventContactId ?? null,
-        token,
-        channel,
-        inviteUrl,
-        createdById: ownerContactId,
-      });
+    const invitation = await this.invitationRepository.createOrReuse({
+      eventType: context.eventType,
+      drawNameEventId: context.drawNameEventId,
+      wishlistEventId: context.wishlistEventId,
+      giftingEventId: context.giftingEventId,
+      eventId: context.eventId,
+      participantId: context.participant?.id ?? null,
+      eventContactId: context.contact.id,
+      token,
+      channel: context.channel,
+      inviteUrl,
+      createdById: context.ownerContactId,
+    });
 
-    if (channel === InvitationChannel.EMAIL) {
+    if (context.channel === InvitationChannel.EMAIL) {
       await this.emailService.sendEmail({
-        to: contact!.email!,
-        subject: 'You have been invited to a draw name event',
-        html: this.buildInvitationEmailHtml(invitation),
-        text: `You have been invited to a draw name event. Open this link to continue: ${invitation.inviteUrl}`,
+        to: context.contact.email!,
+        subject: this.getInvitationSubject(context.eventType),
+        html: this.buildInvitationEmailHtml(invitation, context.eventTitle),
+        text: `${this.getInvitationText(context.eventType)} Open this link to continue: ${invitation.inviteUrl}`,
       });
     }
 
     return invitation;
   }
 
-  private ensureParticipantCanReceiveInvite(
-    participant: EventParticipant,
+  private ensureContactCanReceiveInvite(
+    contact: Contact,
     channel: InvitationChannel,
   ) {
-    if (!participant.eventContact) {
-      throw new BadRequestException('Participant does not have a contact');
+    if (channel === InvitationChannel.EMAIL && !contact.email) {
+      throw new BadRequestException('Contact email is missing');
     }
 
-    if (channel === InvitationChannel.EMAIL && !participant.eventContact.email) {
-      throw new BadRequestException('Participant contact email is missing');
+    if (channel === InvitationChannel.WHATSAPP && !contact.phoneNumber) {
+      throw new BadRequestException('Contact phone number is missing');
+    }
+  }
+
+  private async ensureInvitationParticipant(
+    invitation: Invitation,
+    contact: Contact,
+  ): Promise<Invitation> {
+    if (invitation.participantId) {
+      return invitation;
     }
 
     if (
-      channel === InvitationChannel.WHATSAPP &&
-      !participant.eventContact.phoneNumber
+      ![InvitationEventType.WISHLIST, InvitationEventType.GIFTING].includes(
+        invitation.eventType,
+      )
     ) {
-      throw new BadRequestException(
-        'Participant contact phone number is missing',
-      );
+      return invitation;
     }
+
+    const existingParticipant =
+      await this.participantRepository.findByEventIdAndContactId(
+        invitation.eventId,
+        contact.id,
+      );
+    const participant =
+      existingParticipant ??
+      (await this.participantRepository.create({
+        eventId: invitation.eventId,
+        eventContactId: contact.id,
+        role: EventParticipantRole.PARTICIPANT,
+        isNotified: false,
+        isPairActive: false,
+      }));
+
+    return this.invitationRepository.linkParticipant(
+      invitation.id,
+      participant.id,
+    );
   }
 
   private async getInvitationByTokenOrThrow(
@@ -342,16 +593,60 @@ export class InvitationService {
     return `${configService.getFrontendBaseUrl().replace(/\/$/, '')}/invite/${token}`;
   }
 
-  private getRedirectPath(drawNameEventId: string): string {
-    return `/dashboard/draw-names/${drawNameEventId}`;
+  private getRedirectPath(invitation: Invitation): string {
+    if (
+      invitation.eventType === InvitationEventType.DRAW_NAME &&
+      invitation.drawNameEventId
+    ) {
+      return `/dashboard/draw-names/${invitation.drawNameEventId}`;
+    }
+
+    if (
+      invitation.eventType === InvitationEventType.WISHLIST &&
+      invitation.wishlistEventId
+    ) {
+      return `/dashboard/wishlist-events/${invitation.wishlistEventId}`;
+    }
+
+    if (
+      invitation.eventType === InvitationEventType.GIFTING &&
+      invitation.giftingEventId
+    ) {
+      return `/dashboard/gifts/${invitation.giftingEventId}`;
+    }
+
+    return `/dashboard/events/${invitation.eventId}`;
   }
 
-  private buildInvitationEmailHtml(invitation: Invitation): string {
-    const eventTitle = invitation.event?.title ?? 'your draw name event';
+  private getInvitationSubject(eventType: InvitationEventType): string {
+    return `You have been invited to ${this.getInvitationEventLabel(eventType)}`;
+  }
+
+  private getInvitationText(eventType: InvitationEventType): string {
+    return `You have been invited to join ${this.getInvitationEventLabel(eventType)}.`;
+  }
+
+  private getInvitationEventLabel(eventType: InvitationEventType): string {
+    switch (eventType) {
+      case InvitationEventType.WISHLIST:
+        return 'a wishlist event';
+      case InvitationEventType.GIFTING:
+        return 'a gifting event';
+      case InvitationEventType.DRAW_NAME:
+      default:
+        return 'a draw name event';
+    }
+  }
+
+  private buildInvitationEmailHtml(
+    invitation: Invitation,
+    eventTitle?: string,
+  ): string {
+    const title = eventTitle ?? invitation.event?.title ?? 'your event';
 
     return `
       <p>Hello,</p>
-      <p>You have been invited to join <strong>${eventTitle}</strong>.</p>
+      <p>You have been invited to join <strong>${title}</strong>.</p>
       <p><a href="${invitation.inviteUrl}">Accept your invitation</a></p>
       <p>If the button does not work, copy this link into your browser: ${invitation.inviteUrl}</p>
     `;
@@ -360,7 +655,10 @@ export class InvitationService {
   private toInvitationResponse(invitation: Invitation): InvitationResponseDto {
     return {
       id: invitation.id,
+      eventType: invitation.eventType,
       drawNameEventId: invitation.drawNameEventId,
+      wishlistEventId: invitation.wishlistEventId,
+      giftingEventId: invitation.giftingEventId,
       eventId: invitation.eventId,
       participantId: invitation.participantId,
       eventContactId: invitation.eventContactId,

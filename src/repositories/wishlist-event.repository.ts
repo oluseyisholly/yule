@@ -111,8 +111,10 @@ export class WishlistEventRepository extends BaseRepository<WishlistEvent> {
     id: string,
     contactId: string,
   ): Promise<WishlistEvent | null> {
-    const qb = this.createWishlistEventBaseQuery(contactId)
-      .where('wishlistEvent.id = :id', { id });
+    const qb = this.createWishlistEventBaseQuery(contactId).where(
+      'wishlistEvent.id = :id',
+      { id },
+    );
 
     this.applyReadableByContactFilter(qb, contactId);
 
@@ -159,7 +161,9 @@ export class WishlistEventRepository extends BaseRepository<WishlistEvent> {
     });
   }
 
-  async completeExpiredOngoingWishlistEvents(now = new Date()): Promise<number> {
+  async completeExpiredOngoingWishlistEvents(
+    now = new Date(),
+  ): Promise<number> {
     const expiredWishlistEvents = await this.repo
       .createQueryBuilder('wishlistEvent')
       .innerJoin('wishlistEvent.event', 'event')
@@ -248,10 +252,9 @@ export class WishlistEventRepository extends BaseRepository<WishlistEvent> {
     qb.andWhere(
       new Brackets((subQuery) => {
         subQuery.where('event.created_by_id = :contactId', { contactId });
-        subQuery.orWhere(
-          `EXISTS ${this.createParticipantAccessSubQuery(qb)}`,
-          { contactId },
-        );
+        subQuery.orWhere(`EXISTS ${this.createParticipantAccessSubQuery(qb)}`, {
+          contactId,
+        });
       }),
     );
   }

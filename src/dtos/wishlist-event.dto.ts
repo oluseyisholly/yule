@@ -15,6 +15,7 @@ import {
   IsUUID,
   ValidateNested,
 } from 'class-validator';
+import { DateNotAfter } from 'src/decorators/date-not-after.decorator';
 import { Trim } from 'src/decorators/trim.decorator';
 import { BaseFilterDto } from './baseFilter.dto';
 import {
@@ -60,6 +61,9 @@ export class CreateWishlistEventDetailsDto {
   @Trim()
   @IsOptional()
   @IsDateString()
+  @DateNotAfter('event.eventDate', {
+    message: 'eventDeadline cannot be after event.eventDate',
+  })
   eventDeadline?: Date;
 
   @ApiPropertyOptional({ example: 'private', default: 'private' })

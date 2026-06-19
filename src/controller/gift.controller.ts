@@ -3,6 +3,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
@@ -24,13 +26,17 @@ import {
 import { StandardResopnse } from 'src/common';
 import { SwaggerApiEnumTags } from 'src/common/index.enum';
 import {
+  BulkAssignedGiftsResponseEnvelopeDto,
   BulkCreatedGiftsResponseEnvelopeDto,
+  CreateBulkGiftAssignmentsDto,
   CreateBulkGiftsDto,
   CreateGiftDto,
   CreatedGiftResponseEnvelopeDto,
   FindGiftsQueryDto,
   GiftDeleteResponseEnvelopeDto,
   GiftResponseEnvelopeDto,
+  GroupedGivenGiftResponseDto,
+  PaginatedGroupedGivenGiftsResponseEnvelopeDto,
   PaginatedGiftsResponseEnvelopeDto,
   UpdateGiftDto,
 } from 'src/dtos/gift.dto';
@@ -80,6 +86,26 @@ export class GiftController {
     @Body() createBulkGiftsDto: CreateBulkGiftsDto,
   ): Promise<StandardResopnse<EventGift[]>> {
     return this.giftService.createBulkGifts(createBulkGiftsDto);
+  }
+
+  @Post('assign/bulk')
+  @ApiOperation({ summary: 'Assign multiple gifts to multiple participants' })
+  @ApiCreatedResponse({
+    description: 'Gifts assigned successfully',
+    type: BulkAssignedGiftsResponseEnvelopeDto,
+  })
+  @ApiBadRequestResponse({ description: 'Validation failed' })
+  @ApiNotFoundResponse({
+    description: 'Event, giver participant, or recipient participants not found',
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid JWT token' })
+  @HttpCode(HttpStatus.CREATED)
+  assignBulkGiftsToParticipants(
+    @Body() createBulkGiftAssignmentsDto: CreateBulkGiftAssignmentsDto,
+  ): Promise<StandardResopnse<EventGift[]>> {
+    return this.giftService.assignBulkGiftsToParticipants(
+      createBulkGiftAssignmentsDto,
+    );
   }
 
   @Get()
@@ -140,6 +166,70 @@ export class GiftController {
     return this.giftService.findSelectedGiftsForEvent(eventId, query);
   }
 
+  @Get('given/grouped')
+  @ApiOperation({
+    summary:
+      'Get grouped gifts given by the signed-in contact across all events with recipient details',
+  })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'per_page', required: false, type: Number, example: 25 })
+  @ApiQuery({ name: 'searchQuery', required: false, type: String })
+  @ApiQuery({ name: 'recipientParticipantId', required: false, type: String })
+  @ApiQuery({ name: 'giverParticipantId', required: false, type: String })
+  @ApiQuery({ name: 'startDate', required: false, type: String })
+  @ApiQuery({ name: 'endDate', required: false, type: String })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: SortOrder,
+    example: SortOrder.DESC,
+  })
+  @ApiOkResponse({
+    description: 'Grouped given gifts fetched successfully',
+    type: PaginatedGroupedGivenGiftsResponseEnvelopeDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid JWT token' })
+  findMyGroupedGivenGifts(
+    @Query() query: FindGiftsQueryDto,
+  ): Promise<
+    StandardResopnse<PaginatedRecordsDto<GroupedGivenGiftResponseDto>>
+  > {
+    return this.giftService.findMyGroupedGivenGifts(query);
+  }
+
+  @Get('event/:eventId/given/grouped')
+  @ApiOperation({
+    summary:
+      'Get grouped gifts given by the signed-in contact in an event with recipient details',
+  })
+  @ApiParam({ name: 'eventId', type: String })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'per_page', required: false, type: Number, example: 25 })
+  @ApiQuery({ name: 'searchQuery', required: false, type: String })
+  @ApiQuery({ name: 'recipientParticipantId', required: false, type: String })
+  @ApiQuery({ name: 'giverParticipantId', required: false, type: String })
+  @ApiQuery({ name: 'startDate', required: false, type: String })
+  @ApiQuery({ name: 'endDate', required: false, type: String })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: SortOrder,
+    example: SortOrder.DESC,
+  })
+  @ApiOkResponse({
+    description: 'Grouped given gifts fetched successfully',
+    type: PaginatedGroupedGivenGiftsResponseEnvelopeDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid JWT token' })
+  findMyGroupedGivenGiftsForEvent(
+    @Param('eventId') eventId: string,
+    @Query() query: FindGiftsQueryDto,
+  ): Promise<
+    StandardResopnse<PaginatedRecordsDto<GroupedGivenGiftResponseDto>>
+  > {
+    return this.giftService.findMyGroupedGivenGiftsForEvent(eventId, query);
+  }
+
   @Get('claimed')
   @ApiOperation({
     summary: 'Get paginated gifts claimed by the signed-in participant',
@@ -166,6 +256,62 @@ export class GiftController {
     @Query() query: FindGiftsQueryDto,
   ): Promise<StandardResopnse<PaginatedRecordsDto<EventGift>>> {
     return this.giftService.findMyClaimedGifts(query);
+  }
+
+  @Get('given')
+  @ApiOperation({
+    summary: 'Get paginated gifts given by the signed-in contact across events',
+  })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'per_page', required: false, type: Number, example: 25 })
+  @ApiQuery({ name: 'searchQuery', required: false, type: String })
+  @ApiQuery({ name: 'eventId', required: false, type: String })
+  @ApiQuery({ name: 'recipientParticipantId', required: false, type: String })
+  @ApiQuery({ name: 'startDate', required: false, type: String })
+  @ApiQuery({ name: 'endDate', required: false, type: String })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: SortOrder,
+    example: SortOrder.DESC,
+  })
+  @ApiOkResponse({
+    description: 'Given gifts fetched successfully',
+    type: PaginatedGiftsResponseEnvelopeDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid JWT token' })
+  findMyGivenGifts(
+    @Query() query: FindGiftsQueryDto,
+  ): Promise<StandardResopnse<PaginatedRecordsDto<EventGift>>> {
+    return this.giftService.findMyGivenGifts(query);
+  }
+
+  @Get('received')
+  @ApiOperation({
+    summary: 'Get paginated gifts received by the signed-in contact across events',
+  })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'per_page', required: false, type: Number, example: 25 })
+  @ApiQuery({ name: 'searchQuery', required: false, type: String })
+  @ApiQuery({ name: 'eventId', required: false, type: String })
+  @ApiQuery({ name: 'giverParticipantId', required: false, type: String })
+  @ApiQuery({ name: 'startDate', required: false, type: String })
+  @ApiQuery({ name: 'endDate', required: false, type: String })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: SortOrder,
+    example: SortOrder.DESC,
+  })
+  @ApiOkResponse({
+    description: 'Received gifts fetched successfully',
+    type: PaginatedGiftsResponseEnvelopeDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid JWT token' })
+  findMyReceivedGifts(
+    @Query() query: FindGiftsQueryDto,
+  ): Promise<StandardResopnse<PaginatedRecordsDto<EventGift>>> {
+    return this.giftService.findMyReceivedGifts(query);
   }
 
   @Get(':id')

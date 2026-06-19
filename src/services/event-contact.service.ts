@@ -10,6 +10,7 @@ import { RequestContext } from 'src/common/context/requestContext';
 import {
   CreateEventContactDto,
   FindEventContactsQueryDto,
+  SyncEventContactDto,
   UpdateEventContactDto,
 } from 'src/dtos/event-contact.dto';
 import { DeleteResponseDto, PaginatedRecordsDto } from 'src/dtos/general.dto';
@@ -43,19 +44,11 @@ export class EventContactService {
     const existingContact = await this.eventContactRepository.findByEmail(
       createEventContactDto.email,
     );
-    const existingPhoneContact =
-      await this.eventContactRepository.findByPhoneNumber(
-        createEventContactDto.phoneNumber,
-      );
 
-    if (
-      existingPhoneContact &&
-      (!existingContact || existingPhoneContact.id !== existingContact.id)
-    ) {
-      throw new ConflictException(
-        'A contact with this phone number already exists',
-      );
-    }
+    await this.ensurePhoneNumberIsAvailable(
+      createEventContactDto.phoneNumber,
+      existingContact?.id,
+    );
 
     if (existingContact) {
       await this.eventContactRepository.ensureContactConnection(
@@ -82,6 +75,51 @@ export class EventContactService {
     };
   }
 
+  async syncEventContact(
+    syncEventContactDto: SyncEventContactDto,
+  ): Promise<StandardResopnse<Contact>> {
+    const ownerContactId = RequestContext.getCurrentContactId();
+    const existingContact = await this.eventContactRepository.findByEmail(
+      syncEventContactDto.email,
+    );
+
+    await this.ensurePhoneNumberIsAvailable(
+      syncEventContactDto.phoneNumber,
+      existingContact?.id,
+    );
+
+    if (existingContact) {
+      const updatedContact =
+        await this.eventContactRepository.updateEventContact(
+          existingContact.id,
+          syncEventContactDto,
+          ownerContactId,
+        );
+
+      await this.eventContactRepository.ensureContactConnection(
+        ownerContactId,
+        updatedContact.id,
+      );
+
+      return {
+        code: HttpStatus.OK,
+        message: 'Event contact synced successfully',
+        data: updatedContact,
+      };
+    }
+
+    const contact = await this.eventContactRepository.createEventContact(
+      syncEventContactDto,
+      ownerContactId,
+    );
+
+    return {
+      code: HttpStatus.OK,
+      message: 'Event contact synced successfully',
+      data: contact,
+    };
+  }
+
   async updateEventContact(
     id: string,
     updateEventContactDto: UpdateEventContactDto,
@@ -89,18 +127,10 @@ export class EventContactService {
     const ownerContactId = RequestContext.getCurrentContactId();
     const contact = await this.getOwnedContactOrThrow(id, ownerContactId);
 
-    if (updateEventContactDto.phoneNumber) {
-      const existingPhoneContact =
-        await this.eventContactRepository.findByPhoneNumber(
-          updateEventContactDto.phoneNumber,
-        );
-
-      if (existingPhoneContact && existingPhoneContact.id !== contact.id) {
-        throw new ConflictException(
-          'A contact with this phone number already exists',
-        );
-      }
-    }
+    await this.ensurePhoneNumberIsAvailable(
+      updateEventContactDto.phoneNumber,
+      contact.id,
+    );
 
     const updatedContact = await this.eventContactRepository.updateEventContact(
       contact.id,
@@ -161,6 +191,13 @@ export class EventContactService {
     authUser?: AuthUserPayload,
   ): Promise<Contact> {
     const currentContactId = RequestContext.get('currentContactId');
+
+    console.log(
+      'Current contact id from request context:',
+      currentContactId,
+      userId,
+      authUser,
+    );
 
     if (!userId && currentContactId) {
       const currentContact =
@@ -240,5 +277,23 @@ export class EventContactService {
     }
 
     return contact;
+  }
+
+  private async ensurePhoneNumberIsAvailable(
+    phoneNumber?: string,
+    contactIdToIgnore?: string,
+  ): Promise<void> {
+    if (!phoneNumber) {
+      return;
+    }
+
+    const existingPhoneContact =
+      await this.eventContactRepository.findByPhoneNumber(phoneNumber);
+
+    if (existingPhoneContact && existingPhoneContact.id !== contactIdToIgnore) {
+      throw new ConflictException(
+        'A contact with this phone number already exists',
+      );
+    }
   }
 }

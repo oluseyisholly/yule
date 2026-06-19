@@ -9,11 +9,13 @@ import { StandardResopnse } from 'src/common';
 import { RequestContext } from 'src/common/context/requestContext';
 import { DeleteResponseDto, PaginatedRecordsDto } from 'src/dtos/general.dto';
 import {
+  CreateBulkGiftAssignmentsDto,
   CreateBulkGiftsDto,
   CreateGiftDto,
   FindParticipantGiftSelectionsQueryDto,
   FindGiftsQueryDto,
   GiftSelectionResponseDto,
+  GroupedGivenGiftResponseDto,
   UpdateGiftDto,
 } from 'src/dtos/gift.dto';
 import { EventGift } from 'src/entities/gift.entity';
@@ -49,7 +51,16 @@ export class GiftService {
       'Giver participant not found',
     );
 
-    const gift = await this.giftRepository.create(createGiftDto);
+    const giverParticipantId =
+      await this.resolveGiftGiverParticipantIdFromRecipient(
+        createGiftDto.recipientParticipantId,
+        createGiftDto.giverParticipantId,
+      );
+
+    const gift = await this.giftRepository.create({
+      ...createGiftDto,
+      giverParticipantId,
+    });
 
     return {
       code: HttpStatus.CREATED,
@@ -76,18 +87,68 @@ export class GiftService {
       'Giver participant not found',
     );
 
+    const giverParticipantId =
+      await this.resolveGiftGiverParticipantIdFromRecipient(
+        createBulkGiftsDto.recipientParticipantId,
+        createBulkGiftsDto.giverParticipantId,
+      );
+
     const gifts = await this.giftRepository.replaceParticipantGiftsForEvent(
       createBulkGiftsDto.eventId,
       createBulkGiftsDto.recipientParticipantId,
       createBulkGiftsDto.gifts.map((gift) => ({
         ...gift,
-        giverParticipantId: createBulkGiftsDto.giverParticipantId,
+        giverParticipantId,
       })),
     );
 
     return {
       code: HttpStatus.CREATED,
       message: 'Gifts created successfully',
+      data: gifts,
+    };
+  }
+
+  async assignBulkGiftsToParticipants(
+    createBulkGiftAssignmentsDto: CreateBulkGiftAssignmentsDto,
+  ): Promise<StandardResopnse<EventGift[]>> {
+    const currentContactId = RequestContext.getCurrentContactId();
+    const recipientParticipantIds = this.getUniqueRecipientParticipantIds(
+      createBulkGiftAssignmentsDto.recipientParticipantIds,
+    );
+
+    this.ensureBulkGiftSelectionsAreUnique(createBulkGiftAssignmentsDto.gifts);
+    await this.ensureGiftDetailsWithinBudget(
+      createBulkGiftAssignmentsDto.eventId,
+      createBulkGiftAssignmentsDto.gifts,
+    );
+
+    const giverParticipantId =
+      await this.resolveGiftAssignmentGiverParticipantId(
+        createBulkGiftAssignmentsDto,
+        currentContactId,
+      );
+
+    if (recipientParticipantIds.includes(giverParticipantId)) {
+      throw new BadRequestException('You cannot assign gifts to yourself');
+    }
+
+    await this.ensureParticipantsBelongToEvent(
+      recipientParticipantIds,
+      createBulkGiftAssignmentsDto.eventId,
+      'Recipient participants not found',
+    );
+
+    const gifts = await this.giftRepository.assignGiftsToParticipants(
+      createBulkGiftAssignmentsDto.eventId,
+      giverParticipantId,
+      recipientParticipantIds,
+      createBulkGiftAssignmentsDto.gifts,
+    );
+
+    return {
+      code: HttpStatus.CREATED,
+      message: 'Gifts assigned successfully',
       data: gifts,
     };
   }
@@ -172,6 +233,77 @@ export class GiftService {
       code: HttpStatus.OK,
       message: 'Claimed gifts fetched successfully',
       data: paginatedGifts,
+    };
+  }
+
+  async findMyGivenGifts(
+    query: FindGiftsQueryDto,
+  ): Promise<StandardResopnse<PaginatedRecordsDto<EventGift>>> {
+    const currentContactId = RequestContext.getCurrentContactId();
+    const paginatedGifts = await this.giftRepository.findClaimedGiftsByContact(
+      currentContactId,
+      query,
+    );
+
+    return {
+      code: HttpStatus.OK,
+      message: 'Given gifts fetched successfully',
+      data: paginatedGifts,
+    };
+  }
+
+  async findMyReceivedGifts(
+    query: FindGiftsQueryDto,
+  ): Promise<StandardResopnse<PaginatedRecordsDto<EventGift>>> {
+    const currentContactId = RequestContext.getCurrentContactId();
+    const paginatedGifts = await this.giftRepository.findReceivedGiftsByContact(
+      currentContactId,
+      query,
+    );
+
+    return {
+      code: HttpStatus.OK,
+      message: 'Received gifts fetched successfully',
+      data: paginatedGifts,
+    };
+  }
+
+  async findMyGroupedGivenGiftsForEvent(
+    eventId: string,
+    query: FindGiftsQueryDto,
+  ): Promise<
+    StandardResopnse<PaginatedRecordsDto<GroupedGivenGiftResponseDto>>
+  > {
+    const currentContactId = RequestContext.getCurrentContactId();
+    const groupedGifts =
+      await this.giftRepository.findGivenGiftsByContactForEvent(
+        eventId,
+        currentContactId,
+        query,
+      );
+
+    return {
+      code: HttpStatus.OK,
+      message: 'Grouped given gifts fetched successfully',
+      data: groupedGifts,
+    };
+  }
+
+  async findMyGroupedGivenGifts(
+    query: FindGiftsQueryDto,
+  ): Promise<
+    StandardResopnse<PaginatedRecordsDto<GroupedGivenGiftResponseDto>>
+  > {
+    const currentContactId = RequestContext.getCurrentContactId();
+    const groupedGifts = await this.giftRepository.findGivenGiftsByContact(
+      currentContactId,
+      query,
+    );
+
+    return {
+      code: HttpStatus.OK,
+      message: 'Grouped given gifts fetched successfully',
+      data: groupedGifts,
     };
   }
 
@@ -514,15 +646,25 @@ export class GiftService {
   private async ensureBulkGiftSelectionsWithinBudget(
     createBulkGiftsDto: CreateBulkGiftsDto,
   ) {
-    const budget = await this.drawNameEventRepository.findBudgetByEventId(
+    await this.ensureGiftDetailsWithinBudget(
       createBulkGiftsDto.eventId,
+      createBulkGiftsDto.gifts,
+    );
+  }
+
+  private async ensureGiftDetailsWithinBudget(
+    eventId: string,
+    gifts: CreateBulkGiftsDto['gifts'],
+  ) {
+    const budget = await this.drawNameEventRepository.findBudgetByEventId(
+      eventId,
     );
 
     if (budget === null) {
       return;
     }
 
-    const totalGiftAmount = createBulkGiftsDto.gifts.reduce(
+    const totalGiftAmount = gifts.reduce(
       (total, gift) => total + Number(gift.amount || 0),
       0,
     );
@@ -532,5 +674,91 @@ export class GiftService {
         `Selected gifts total (${totalGiftAmount}) cannot exceed event budget (${budget})`,
       );
     }
+  }
+
+  private async resolveGiftGiverParticipantIdFromRecipient(
+    recipientParticipantId: string,
+    providedGiverParticipantId?: string,
+  ): Promise<string | undefined> {
+    if (providedGiverParticipantId) {
+      return providedGiverParticipantId;
+    }
+
+    const recipientParticipant = await this.giftRepository.findParticipantById(
+      recipientParticipantId,
+    );
+
+    if (!recipientParticipant?.giftGiverParticipantId) {
+      return undefined;
+    }
+
+    return recipientParticipant.giftGiverParticipantId;
+  }
+
+  private getUniqueRecipientParticipantIds(participantIds: string[]) {
+    const uniqueParticipantIds = Array.from(new Set(participantIds));
+
+    if (participantIds.length !== uniqueParticipantIds.length) {
+      throw new BadRequestException(
+        'Recipient participant ids cannot contain duplicates',
+      );
+    }
+
+    return uniqueParticipantIds;
+  }
+
+  private async ensureParticipantsBelongToEvent(
+    participantIds: string[],
+    eventId: string,
+    message: string,
+  ) {
+    const foundParticipantIds = new Set(
+      await this.giftRepository.findParticipantIdsByEvent(
+        participantIds,
+        eventId,
+      ),
+    );
+    const missingParticipantIds = participantIds.filter(
+      (participantId) => !foundParticipantIds.has(participantId),
+    );
+
+    if (missingParticipantIds.length) {
+      throw new NotFoundException(
+        `${message}: ${missingParticipantIds.join(', ')}`,
+      );
+    }
+  }
+
+  private async resolveGiftAssignmentGiverParticipantId(
+    createBulkGiftAssignmentsDto: CreateBulkGiftAssignmentsDto,
+    currentContactId: string,
+  ) {
+    if (createBulkGiftAssignmentsDto.giverParticipantId) {
+      const giverParticipant = await this.giftRepository.findParticipantById(
+        createBulkGiftAssignmentsDto.giverParticipantId,
+      );
+
+      if (
+        !giverParticipant ||
+        giverParticipant.eventId !== createBulkGiftAssignmentsDto.eventId ||
+        giverParticipant.eventContactId !== currentContactId
+      ) {
+        throw new NotFoundException('Giver participant not found');
+      }
+
+      return giverParticipant.id;
+    }
+
+    const currentParticipant =
+      await this.participantRepository.findByEventIdAndContactId(
+        createBulkGiftAssignmentsDto.eventId,
+        currentContactId,
+      );
+
+    if (!currentParticipant) {
+      throw new NotFoundException('Giver participant not found');
+    }
+
+    return currentParticipant.id;
   }
 }

@@ -5,15 +5,19 @@ import { PaginatedRecordsDto, PaginationDto } from 'src/dtos/general.dto';
 import {
   Invitation,
   InvitationChannel,
+  InvitationEventType,
   InvitationStatus,
 } from 'src/entities/invitation.entity';
 import { QueryBuilderHelper } from 'src/utils/queryBuilder.utils';
 import { BaseRepository } from './base.repository';
 
 type CreateInvitationPayload = {
-  drawNameEventId: string;
+  eventType: InvitationEventType;
+  drawNameEventId?: string | null;
+  wishlistEventId?: string | null;
+  giftingEventId?: string | null;
   eventId: string;
-  participantId: string;
+  participantId?: string | null;
   eventContactId?: string | null;
   token: string;
   channel: InvitationChannel;
@@ -30,12 +34,10 @@ export class InvitationRepository extends BaseRepository<Invitation> {
     super(dataSource, repo);
   }
 
-  async createOrReuseForParticipant(
+  async createOrReuse(
     payload: CreateInvitationPayload,
   ): Promise<Invitation> {
-    const existingInvitation = await this.findByParticipantId(
-      payload.participantId,
-    );
+    const existingInvitation = await this.findReusableInvitation(payload);
 
     if (existingInvitation) {
       await this.repo.update(existingInvitation.id, {
@@ -58,10 +60,31 @@ export class InvitationRepository extends BaseRepository<Invitation> {
     return this.findByIdWithRelations(invitation.id);
   }
 
-  findByParticipantId(participantId: string): Promise<Invitation | null> {
+  findByParticipantId(
+    participantId: string,
+    eventType?: InvitationEventType,
+  ): Promise<Invitation | null> {
+    const qb = this.repo
+      .createQueryBuilder('invitation')
+      .where('invitation.participant_id = :participantId', { participantId });
+
+    if (eventType) {
+      qb.andWhere('invitation.event_type = :eventType', { eventType });
+    }
+
+    return qb.getOne();
+  }
+
+  findByEventContactIdForEvent(
+    eventId: string,
+    eventContactId: string,
+    eventType: InvitationEventType,
+  ): Promise<Invitation | null> {
     return this.repo.findOne({
       where: {
-        participantId,
+        eventId,
+        eventContactId,
+        eventType,
       },
     });
   }
@@ -95,6 +118,22 @@ export class InvitationRepository extends BaseRepository<Invitation> {
     ownerContactId: string,
     query: PaginationDto & { searchQuery?: string },
   ): Promise<PaginatedRecordsDto<Invitation>> {
+    return this.findAllForEvent(
+      drawNameEventId,
+      ownerContactId,
+      InvitationEventType.DRAW_NAME,
+      query,
+      'drawNameEventId',
+    );
+  }
+
+  async findAllForEvent(
+    eventTypeId: string,
+    ownerContactId: string,
+    eventType: InvitationEventType,
+    query: PaginationDto & { searchQuery?: string },
+    eventTypeColumn?: 'drawNameEventId' | 'wishlistEventId' | 'giftingEventId',
+  ): Promise<PaginatedRecordsDto<Invitation>> {
     const qb = this.repo
       .createQueryBuilder('invitation')
       .innerJoinAndSelect('invitation.event', 'event')
@@ -113,10 +152,16 @@ export class InvitationRepository extends BaseRepository<Invitation> {
         'event_contact.email',
         'event_contact.phoneNumber',
       ])
-      .where('invitation.draw_name_event_id = :drawNameEventId', {
-        drawNameEventId,
-      })
+      .where('invitation.event_type = :eventType', { eventType })
       .andWhere('event.created_by_id = :ownerContactId', { ownerContactId });
+
+    if (eventTypeColumn) {
+      qb.andWhere(`invitation.${eventTypeColumn} = :eventTypeId`, {
+        eventTypeId,
+      });
+    } else {
+      qb.andWhere('invitation.event_id = :eventTypeId', { eventTypeId });
+    }
 
     if (query.searchQuery) {
       qb.andWhere(
@@ -149,6 +194,15 @@ export class InvitationRepository extends BaseRepository<Invitation> {
     return this.findByIdWithRelations(id);
   }
 
+  async linkParticipant(
+    id: string,
+    participantId: string,
+  ): Promise<Invitation> {
+    await this.repo.update(id, { participantId });
+
+    return this.findByIdWithRelations(id);
+  }
+
   private async findByIdWithRelations(id: string): Promise<Invitation> {
     const invitation = await this.repo
       .createQueryBuilder('invitation')
@@ -177,5 +231,23 @@ export class InvitationRepository extends BaseRepository<Invitation> {
     }
 
     return invitation;
+  }
+
+  private async findReusableInvitation(
+    payload: CreateInvitationPayload,
+  ): Promise<Invitation | null> {
+    if (payload.participantId) {
+      return this.findByParticipantId(payload.participantId, payload.eventType);
+    }
+
+    if (payload.eventContactId) {
+      return this.findByEventContactIdForEvent(
+        payload.eventId,
+        payload.eventContactId,
+        payload.eventType,
+      );
+    }
+
+    return null;
   }
 }

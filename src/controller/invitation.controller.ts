@@ -21,10 +21,12 @@ import {
   InvitationResponseDto,
   PaginatedInvitationsResponseEnvelopeDto,
   PublicInvitationResponseEnvelopeDto,
+  SendGiftingEventInvitationsDto,
   SendInvitationDto,
   SendInvitationResponseEnvelopeDto,
   SendInvitationsResponseDto,
   SendInvitationsResponseEnvelopeDto,
+  SendWishlistEventInvitationsDto,
 } from 'src/dtos/invitation.dto';
 import { InvitationService } from 'src/services/invitation.service';
 
@@ -50,6 +52,46 @@ export class InvitationController {
   ): Promise<StandardResopnse<SendInvitationsResponseDto>> {
     return this.invitationService.sendDrawNameEventInvitations(
       drawNameEventId,
+      sendInvitationDto,
+    );
+  }
+
+  @Post('wishlist-event/:wishlistEventId/invitations/send')
+  @ApiOperation({ summary: 'Send invitations for a wishlist event' })
+  @ApiParam({ name: 'wishlistEventId', type: String })
+  @ApiOkResponse({
+    description: 'Invitations sent successfully',
+    type: SendInvitationsResponseEnvelopeDto,
+  })
+  @ApiBadRequestResponse({ description: 'Invalid contact details' })
+  @ApiNotFoundResponse({ description: 'Wishlist event not found' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid JWT token' })
+  sendWishlistEventInvitations(
+    @Param('wishlistEventId') wishlistEventId: string,
+    @Body() sendInvitationDto: SendWishlistEventInvitationsDto,
+  ): Promise<StandardResopnse<SendInvitationsResponseDto>> {
+    return this.invitationService.sendWishlistEventInvitations(
+      wishlistEventId,
+      sendInvitationDto,
+    );
+  }
+
+  @Post('gifting-event/:giftingEventId/invitations/send')
+  @ApiOperation({ summary: 'Send invitations for a gifting event' })
+  @ApiParam({ name: 'giftingEventId', type: String })
+  @ApiOkResponse({
+    description: 'Invitations sent successfully',
+    type: SendInvitationsResponseEnvelopeDto,
+  })
+  @ApiBadRequestResponse({ description: 'Invalid contact details' })
+  @ApiNotFoundResponse({ description: 'Gifting event not found' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid JWT token' })
+  sendGiftingEventInvitations(
+    @Param('giftingEventId') giftingEventId: string,
+    @Body() sendInvitationDto: SendGiftingEventInvitationsDto,
+  ): Promise<StandardResopnse<SendInvitationsResponseDto>> {
+    return this.invitationService.sendGiftingEventInvitations(
+      giftingEventId,
       sendInvitationDto,
     );
   }
@@ -93,6 +135,44 @@ export class InvitationController {
     );
   }
 
+  @Get('wishlist-event/:wishlistEventId/invitations')
+  @ApiOperation({ summary: 'Get paginated wishlist event invitations' })
+  @ApiParam({ name: 'wishlistEventId', type: String })
+  @ApiOkResponse({
+    description: 'Invitations fetched successfully',
+    type: PaginatedInvitationsResponseEnvelopeDto,
+  })
+  @ApiNotFoundResponse({ description: 'Wishlist event not found' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid JWT token' })
+  findWishlistEventInvitations(
+    @Param('wishlistEventId') wishlistEventId: string,
+    @Query() query: FindInvitationsQueryDto,
+  ): Promise<StandardResopnse<PaginatedRecordsDto<InvitationResponseDto>>> {
+    return this.invitationService.findWishlistEventInvitations(
+      wishlistEventId,
+      query,
+    );
+  }
+
+  @Get('gifting-event/:giftingEventId/invitations')
+  @ApiOperation({ summary: 'Get paginated gifting event invitations' })
+  @ApiParam({ name: 'giftingEventId', type: String })
+  @ApiOkResponse({
+    description: 'Invitations fetched successfully',
+    type: PaginatedInvitationsResponseEnvelopeDto,
+  })
+  @ApiNotFoundResponse({ description: 'Gifting event not found' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid JWT token' })
+  findGiftingEventInvitations(
+    @Param('giftingEventId') giftingEventId: string,
+    @Query() query: FindInvitationsQueryDto,
+  ): Promise<StandardResopnse<PaginatedRecordsDto<InvitationResponseDto>>> {
+    return this.invitationService.findGiftingEventInvitations(
+      giftingEventId,
+      query,
+    );
+  }
+
   @Public()
   @Get('invitations/:token')
   @ApiOperation({ summary: 'Get invitation details by token' })
@@ -112,7 +192,9 @@ export class InvitationController {
 
   @Public()
   @Post('invitations/:token/claim')
-  @ApiOperation({ summary: 'Claim invitation and link the participant contact' })
+  @ApiOperation({
+    summary: 'Claim invitation and link the participant contact',
+  })
   @ApiParam({ name: 'token', type: String })
   @ApiOkResponse({
     description: 'Invitation claimed successfully',

@@ -4,6 +4,7 @@ export enum SwaggerApiEnumTags {
   EVENTTYPE = 'Event Type',
   DRAWNAMEEVENT = 'Draw Name Event',
   WISHLISTEVENT = 'Wishlist Event',
+  GIFTINGEVENT = 'Gifting Event',
   EVENTCONTACT = 'Event Contact',
   PARTICIPANT = 'Participant',
   INVITATION = 'Invitation',

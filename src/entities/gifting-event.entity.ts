@@ -1,8 +1,9 @@
 import { Entity, PrimaryColumn, Column, OneToOne, JoinColumn } from 'typeorm';
 import { Event } from './event.entity';
+import { Base } from './base';
 
 @Entity('gifting_events')
-export class GiftingEvent {
+export class GiftingEvent extends Base {
   @PrimaryColumn({ name: 'event_id', type: 'uuid' })
   eventId: string;
 

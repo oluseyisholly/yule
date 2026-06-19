@@ -9,6 +9,7 @@ import { EventContactController } from './controller/event-contact.controller';
 import { EventParticipantExclusionController } from './controller/event-participant-exclusion.controller';
 import { EventTypeController } from './controller/event-type.controller';
 import { GiftController } from './controller/gift.controller';
+import { GiftingEventController } from './controller/gifting-event.controller';
 import { InvitationController } from './controller/invitation.controller';
 import { ParticipantController } from './controller/participant.controller';
 import { UserController } from './controller/user.controller';
@@ -31,6 +32,7 @@ import { EventContactRepository } from './repositories/event-contact.repository'
 import { EventParticipantExclusionRepository } from './repositories/event-participant-exclusion.repository';
 import { EventTypeRepository } from './repositories/event-type.repository';
 import { GiftRepository } from './repositories/gift.repository';
+import { GiftingEventRepository } from './repositories/gifting-event.repository';
 import { InvitationRepository } from './repositories/invitation.repository';
 import { ParticipantRepository } from './repositories/participant.repository';
 import { UserRepository } from './repositories/user.repositoty';
@@ -50,6 +52,7 @@ import { EventContactService } from './services/event-contact.service';
 import { EventParticipantExclusionService } from './services/event-participant-exclusion.service';
 import { EventTypeService } from './services/event-type.service';
 import { GiftService } from './services/gift.service';
+import { GiftingEventService } from './services/gifting-event.service';
 import { InvitationService } from './services/invitation.service';
 import { ParticipantService } from './services/participant.service';
 import { UserService } from './services/user.services';
@@ -97,6 +100,7 @@ import { SchedulerService } from './services/scheduler.service';
     ParticipantController,
     InvitationController,
     GiftController,
+    GiftingEventController,
     WishlistEventController,
   ],
   providers: [
@@ -127,8 +131,10 @@ import { SchedulerService } from './services/scheduler.service';
     EventTypeService,
     EventTypeRepository,
     GiftService,
+    GiftingEventService,
     EmailService,
     GiftRepository,
+    GiftingEventRepository,
     InvitationService,
     InvitationRepository,
     ParticipantService,

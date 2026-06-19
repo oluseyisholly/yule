@@ -20,6 +20,7 @@ import { Trim } from 'src/decorators/trim.decorator';
 import { BaseFilterDto } from './baseFilter.dto';
 import {
   DeleteResponseDto,
+  PaginatedRecordsDto,
   PaginationDto,
   createPaginatedDto,
   createResponseDto,
@@ -157,6 +158,36 @@ export class CreateBulkGiftsDto {
   gifts: GiftDetailsDto[];
 }
 
+export class CreateBulkGiftAssignmentsDto {
+  @ApiProperty()
+  @Trim()
+  @IsNotEmpty()
+  @IsUUID()
+  eventId: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Defaults to the signed-in contact participant for this event when omitted.',
+  })
+  @Trim()
+  @IsOptional()
+  @IsUUID()
+  giverParticipantId?: string;
+
+  @ApiProperty({ type: [String] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsUUID('4', { each: true })
+  recipientParticipantIds: string[];
+
+  @ApiProperty({ type: [GiftDetailsDto] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => GiftDetailsDto)
+  gifts: GiftDetailsDto[];
+}
+
 export class UpdateGiftDto extends PartialType(CreateGiftDto) {}
 
 export class GiftFilterDto extends BaseFilterDto {
@@ -207,6 +238,142 @@ export class GiftParticipantResponseDto {
 
   @ApiPropertyOptional({ type: GiftParticipantContactResponseDto })
   eventContact?: GiftParticipantContactResponseDto;
+}
+
+export class GiftEventResponseDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  title: string;
+
+  @ApiPropertyOptional()
+  description?: string | null;
+
+  @ApiProperty()
+  eventTypeId: string;
+
+  @ApiPropertyOptional()
+  eventDate?: Date;
+
+  @ApiProperty()
+  status: string;
+}
+
+export class GiftRecipientPersonResponseDto {
+  @ApiPropertyOptional()
+  firstName?: string;
+
+  @ApiPropertyOptional()
+  lastName?: string;
+
+  @ApiPropertyOptional()
+  email?: string;
+}
+
+export class GroupedGivenGiftResponseDto {
+  @ApiProperty()
+  participantGiftId: string;
+
+  @ApiProperty()
+  title: string;
+
+  @ApiPropertyOptional()
+  description?: string | null;
+
+  @ApiProperty()
+  amount: number;
+
+  @ApiProperty()
+  currency: string;
+
+  @ApiPropertyOptional()
+  imageUrl?: string | null;
+
+  @ApiPropertyOptional()
+  categorySlug?: string | null;
+
+  @ApiPropertyOptional()
+  subCategorySlug?: string | null;
+
+  @ApiPropertyOptional()
+  condition?: string | null;
+
+  @ApiPropertyOptional()
+  locationState?: string | null;
+
+  @ApiPropertyOptional()
+  locationCity?: string | null;
+
+  @ApiPropertyOptional()
+  sellerId?: string | null;
+
+  @ApiPropertyOptional()
+  productSlug?: string | null;
+
+  @ApiProperty()
+  recipientCount: number;
+
+  @ApiProperty({ type: [GiftRecipientPersonResponseDto] })
+  people: GiftRecipientPersonResponseDto[];
+
+  @ApiPropertyOptional({ type: GiftEventResponseDto })
+  event?: GiftEventResponseDto;
+}
+
+export class GroupedGivenGiftItemResponseDto {
+  @ApiProperty()
+  participantGiftId: string;
+
+  @ApiProperty()
+  title: string;
+
+  @ApiPropertyOptional()
+  description?: string | null;
+
+  @ApiProperty()
+  amount: number;
+
+  @ApiProperty()
+  currency: string;
+
+  @ApiPropertyOptional()
+  imageUrl?: string | null;
+
+  @ApiPropertyOptional()
+  categorySlug?: string | null;
+
+  @ApiPropertyOptional()
+  subCategorySlug?: string | null;
+
+  @ApiPropertyOptional()
+  condition?: string | null;
+
+  @ApiPropertyOptional()
+  locationState?: string | null;
+
+  @ApiPropertyOptional()
+  locationCity?: string | null;
+
+  @ApiPropertyOptional()
+  sellerId?: string | null;
+
+  @ApiPropertyOptional()
+  productSlug?: string | null;
+
+  @ApiProperty()
+  recipientCount: number;
+
+  @ApiProperty({ type: [GiftRecipientPersonResponseDto] })
+  people: GiftRecipientPersonResponseDto[];
+}
+
+export class GroupedGivenGiftsByEventResponseDto {
+  @ApiProperty({ type: GiftEventResponseDto })
+  event: GiftEventResponseDto;
+
+  @ApiProperty({ type: [GroupedGivenGiftItemResponseDto] })
+  gifts: GroupedGivenGiftItemResponseDto[];
 }
 
 export class GiftResponseDto {
@@ -267,6 +434,9 @@ export class GiftResponseDto {
   @ApiPropertyOptional({ type: GiftParticipantResponseDto })
   giverParticipant?: GiftParticipantResponseDto;
 
+  @ApiPropertyOptional({ type: GiftEventResponseDto })
+  event?: GiftEventResponseDto;
+
   @ApiProperty()
   createdAt: Date;
 
@@ -292,6 +462,14 @@ export class FindParticipantGiftSelectionsQueryDto {
 
 export class PaginatedGiftsDto extends createPaginatedDto(GiftResponseDto) {}
 
+export class PaginatedGroupedGivenGiftsDto extends createPaginatedDto(
+  GroupedGivenGiftResponseDto,
+) {}
+
+export class PaginatedGroupedGivenGiftsByEventDto extends createPaginatedDto(
+  GroupedGivenGiftsByEventResponseDto,
+) {}
+
 export class CreatedGiftResponseEnvelopeDto extends createResponseDto(
   GiftResponseDto,
   {
@@ -305,6 +483,17 @@ export class BulkCreatedGiftsResponseEnvelopeDto {
   code: number;
 
   @ApiProperty({ example: 'Gifts created successfully' })
+  message: string;
+
+  @ApiProperty({ type: [GiftResponseDto] })
+  data: GiftResponseDto[];
+}
+
+export class BulkAssignedGiftsResponseEnvelopeDto {
+  @ApiProperty({ example: 201 })
+  code: number;
+
+  @ApiProperty({ example: 'Gifts assigned successfully' })
   message: string;
 
   @ApiProperty({ type: [GiftResponseDto] })
@@ -351,6 +540,33 @@ export class ClaimedGiftIdsResponseEnvelopeDto {
   })
   data: string[];
 }
+
+export class GroupedGivenGiftsResponseEnvelopeDto {
+  @ApiProperty({ example: 200 })
+  code: number;
+
+  @ApiProperty({ example: 'Grouped given gifts fetched successfully' })
+  message: string;
+
+  @ApiProperty({ type: [GroupedGivenGiftResponseDto] })
+  data: GroupedGivenGiftResponseDto[];
+}
+
+export class PaginatedGroupedGivenGiftsResponseEnvelopeDto extends createResponseDto(
+  PaginatedGroupedGivenGiftsDto,
+  {
+    codeExample: 200,
+    messageExample: 'Grouped given gifts fetched successfully',
+  },
+) {}
+
+export class PaginatedGroupedGivenGiftsByEventResponseEnvelopeDto extends createResponseDto(
+  PaginatedGroupedGivenGiftsByEventDto,
+  {
+    codeExample: 200,
+    messageExample: 'Grouped given gifts fetched successfully',
+  },
+) {}
 
 export class GiftDeleteResponseEnvelopeDto extends createResponseDto(
   DeleteResponseDto,

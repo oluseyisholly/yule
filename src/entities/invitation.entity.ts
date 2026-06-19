@@ -1,4 +1,4 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne, Unique } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import { Base } from './base';
 import { Contact } from './contact.entity';
 import { Event } from './event.entity';
@@ -14,12 +14,39 @@ export enum InvitationChannel {
   WHATSAPP = 'whatsapp',
 }
 
+export enum InvitationEventType {
+  DRAW_NAME = 'draw_name',
+  WISHLIST = 'wishlist',
+  GIFTING = 'gifting',
+}
+
 @Entity('invitations')
 @Index(['token'], { unique: true })
-@Unique(['participantId'])
+@Index(['participantId', 'eventType'], {
+  unique: true,
+  where: '"participant_id" IS NOT NULL',
+})
+@Index(['eventId', 'eventContactId', 'eventType'], {
+  unique: true,
+  where: '"event_contact_id" IS NOT NULL',
+})
 export class Invitation extends Base {
-  @Column({ name: 'draw_name_event_id', type: 'uuid' })
-  drawNameEventId: string;
+  @Column({
+    name: 'event_type',
+    type: 'enum',
+    enum: InvitationEventType,
+    default: InvitationEventType.DRAW_NAME,
+  })
+  eventType: InvitationEventType;
+
+  @Column({ name: 'draw_name_event_id', type: 'uuid', nullable: true })
+  drawNameEventId?: string | null;
+
+  @Column({ name: 'wishlist_event_id', type: 'uuid', nullable: true })
+  wishlistEventId?: string | null;
+
+  @Column({ name: 'gifting_event_id', type: 'uuid', nullable: true })
+  giftingEventId?: string | null;
 
   @ManyToOne(() => Event, {
     nullable: false,
@@ -32,14 +59,14 @@ export class Invitation extends Base {
   eventId: string;
 
   @ManyToOne(() => EventParticipant, {
-    nullable: false,
+    nullable: true,
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'participant_id' })
-  participant: EventParticipant;
+  participant?: EventParticipant | null;
 
-  @Column({ name: 'participant_id', type: 'uuid' })
-  participantId: string;
+  @Column({ name: 'participant_id', type: 'uuid', nullable: true })
+  participantId?: string | null;
 
   @ManyToOne(() => Contact, {
     nullable: true,

@@ -3,17 +3,21 @@ import {
   ApiPropertyOptional,
 } from '@nestjs/swagger';
 import {
+  ArrayNotEmpty,
   IsEmail,
   IsEnum,
+  IsArray,
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUUID,
   MinLength,
 } from 'class-validator';
 import { Match } from 'src/decorators/match.decorator';
 import { Trim } from 'src/decorators/trim.decorator';
 import {
   InvitationChannel,
+  InvitationEventType,
   InvitationStatus,
 } from 'src/entities/invitation.entity';
 import {
@@ -27,6 +31,21 @@ export class SendInvitationDto {
   @IsEnum(InvitationChannel)
   channel: InvitationChannel;
 }
+
+export class SendEventContactInvitationsDto extends SendInvitationDto {
+  @ApiProperty({
+    type: [String],
+    description: 'Contact ids to send invitations to',
+  })
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsUUID('4', { each: true })
+  contactIds: string[];
+}
+
+export class SendWishlistEventInvitationsDto extends SendEventContactInvitationsDto {}
+
+export class SendGiftingEventInvitationsDto extends SendEventContactInvitationsDto {}
 
 export class ClaimInvitationDto {
   @ApiProperty({ example: 'Olusola' })
@@ -92,14 +111,23 @@ export class InvitationResponseDto {
   @ApiProperty()
   id: string;
 
-  @ApiProperty()
-  drawNameEventId: string;
+  @ApiProperty({ enum: InvitationEventType })
+  eventType: InvitationEventType;
+
+  @ApiPropertyOptional()
+  drawNameEventId?: string | null;
+
+  @ApiPropertyOptional()
+  wishlistEventId?: string | null;
+
+  @ApiPropertyOptional()
+  giftingEventId?: string | null;
 
   @ApiProperty()
   eventId: string;
 
-  @ApiProperty()
-  participantId: string;
+  @ApiPropertyOptional()
+  participantId?: string | null;
 
   @ApiPropertyOptional()
   eventContactId?: string | null;
@@ -127,8 +155,11 @@ export class InvitationResponseDto {
 }
 
 export class InvitationSkippedResponseDto {
-  @ApiProperty()
-  participantId: string;
+  @ApiPropertyOptional()
+  participantId?: string;
+
+  @ApiPropertyOptional()
+  contactId?: string;
 
   @ApiProperty()
   reason: string;

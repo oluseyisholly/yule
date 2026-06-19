@@ -74,8 +74,7 @@ export class WishlistEventService {
   async findWishlistEventById(
     wishlistEventId: string,
   ): Promise<StandardResopnse<WishlistEvent>> {
-    const wishlistEvent =
-      await this.getWishlistEventOrThrow(wishlistEventId);
+    const wishlistEvent = await this.getWishlistEventOrThrow(wishlistEventId);
 
     return {
       code: HttpStatus.OK,
@@ -178,6 +177,8 @@ export class WishlistEventService {
     const currentContactId = RequestContext.getCurrentContactId();
     const wishlistEvent = await this.getWishlistEventOrThrow(wishlistEventId);
 
+    this.ensureWishlistEventDeadlineHasNotPassed(wishlistEvent);
+
     await this.wishlistEventRepository.updateWishlistEvent(
       wishlistEvent.id,
       wishlistEvent.eventId,
@@ -228,11 +229,10 @@ export class WishlistEventService {
     wishlistEventId: string,
   ): Promise<WishlistEvent> {
     const currentContactId = RequestContext.getCurrentContactId();
-    const wishlistEvent =
-      await this.wishlistEventRepository.findByIdForUser(
-        wishlistEventId,
-        currentContactId,
-      );
+    const wishlistEvent = await this.wishlistEventRepository.findByIdForUser(
+      wishlistEventId,
+      currentContactId,
+    );
 
     if (!wishlistEvent) {
       throw new NotFoundException('Wishlist event not found');
@@ -268,6 +268,24 @@ export class WishlistEventService {
       throw new BadRequestException(
         'Wishlist event cannot be deleted while it is ongoing',
       );
+    }
+  }
+
+  private ensureWishlistEventDeadlineHasNotPassed(
+    wishlistEvent: WishlistEvent,
+  ) {
+    if (!wishlistEvent.eventDeadline) {
+      return;
+    }
+
+    const deadlineDate = new Date(wishlistEvent.eventDeadline);
+
+    if (Number.isNaN(deadlineDate.getTime())) {
+      return;
+    }
+
+    if (deadlineDate.getTime() < Date.now()) {
+      throw new BadRequestException('The wishlist deadline date has passed');
     }
   }
 
