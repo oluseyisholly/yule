@@ -81,7 +81,9 @@ export class EventContactService {
     const existingContactByEmail =
       await this.eventContactRepository.findByEmail(syncEventContactDto.email);
     const existingContactByUserId =
-      await this.eventContactRepository.findByUserId(syncEventContactDto.userId);
+      await this.eventContactRepository.findByUserId(
+        syncEventContactDto.userId,
+      );
     const contactToSync = existingContactByEmail ?? existingContactByUserId;
 
     // await this.ensurePhoneNumberIsAvailable(

@@ -242,13 +242,8 @@ export class DashboardService {
             FROM active_draw_name_events
           ) AS active_draw_names,
           (
-            SELECT COUNT(*)
-            FROM event_participants participant
-            INNER JOIN scoped_draw_name_events scoped_event
-              ON scoped_event.event_id = participant.event_id
-            WHERE participant.deleted_at IS NULL
-              AND participant.event_contact_id IS NOT NULL
-              AND participant.role != $3
+           SELECT COUNT(*)
+            FROM scoped_draw_name_events
           ) AS total_names,
           (
             SELECT COUNT(DISTINCT participant.event_contact_id)
