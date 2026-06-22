@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { Brackets, DataSource, DeepPartial, Repository } from 'typeorm';
 import { RequestContext } from 'src/common/context/requestContext';
+import { EventOption } from 'src/common/index.enum';
 import {
   FindGiftingEventsQueryDto,
   UpdateGiftingEventBaseEventDto,
@@ -43,7 +44,11 @@ export class GiftingEventRepository extends BaseRepository<GiftingEvent> {
       const participantRepo = manager.getRepository(EventParticipant);
 
       const event = await eventRepo.save(
-        eventRepo.create({ ...eventPayload, createdById: actorId }),
+        eventRepo.create({
+          ...eventPayload,
+          eventOption: EventOption.GIFTING,
+          createdById: actorId,
+        }),
       );
 
       const giftingEvent = await giftingEventRepo.save(
@@ -168,6 +173,7 @@ export class GiftingEventRepository extends BaseRepository<GiftingEvent> {
         'event.title',
         'event.description',
         'event.eventTypeId',
+        'event.eventOption',
         'event.eventDate',
         'event.status',
         'event.createdAt',

@@ -40,9 +40,16 @@ export class InvitationRepository extends BaseRepository<Invitation> {
     const existingInvitation = await this.findReusableInvitation(payload);
 
     if (existingInvitation) {
+      const shouldRefreshInviteUrl = [
+        InvitationEventType.DRAW_NAME,
+        InvitationEventType.GIFTING,
+      ].includes(payload.eventType);
+
       await this.repo.update(existingInvitation.id, {
         channel: payload.channel,
-        inviteUrl: existingInvitation.inviteUrl,
+        inviteUrl: shouldRefreshInviteUrl
+          ? payload.inviteUrl
+          : existingInvitation.inviteUrl,
         sentAt: new Date(),
       });
 
@@ -153,7 +160,18 @@ export class InvitationRepository extends BaseRepository<Invitation> {
         'event_contact.phoneNumber',
       ])
       .where('invitation.event_type = :eventType', { eventType })
-      .andWhere('event.created_by_id = :ownerContactId', { ownerContactId });
+      .andWhere('event.created_by_id = :ownerContactId', { ownerContactId })
+      .andWhere(
+        new Brackets((subQuery) => {
+          subQuery.where('invitation.event_contact_id IS NULL');
+          subQuery.orWhere(
+            'invitation.event_contact_id != :ownerContactId',
+            {
+              ownerContactId,
+            },
+          );
+        }),
+      );
 
     if (eventTypeColumn) {
       qb.andWhere(`invitation.${eventTypeColumn} = :eventTypeId`, {

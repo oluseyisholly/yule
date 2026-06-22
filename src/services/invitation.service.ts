@@ -317,7 +317,9 @@ export class InvitationService {
 
   async findInvitationByToken(
     token: string,
-  ): Promise<StandardResopnse<InvitationResponseDto & { redirectPath: string }>> {
+  ): Promise<
+    StandardResopnse<InvitationResponseDto & { redirectPath: string }>
+  > {
     const invitation = await this.getInvitationByTokenOrThrow(token);
 
     return {
@@ -342,15 +344,10 @@ export class InvitationService {
     }
 
     const normalizedEmail = contact.email.trim().toLowerCase();
-    const existingUser = await this.userRepository.findUserByEmail(
-      normalizedEmail,
-    );
+    const existingUser =
+      await this.userRepository.findUserByEmail(normalizedEmail);
 
-    if (
-      contact.userId &&
-      existingUser &&
-      contact.userId !== existingUser.id
-    ) {
+    if (contact.userId && existingUser && contact.userId !== existingUser.id) {
       throw new ConflictException(
         'This invitation contact is already linked to a different user',
       );
@@ -376,8 +373,10 @@ export class InvitationService {
             contact.id,
             user.id,
           );
-    const invitationWithParticipant =
-      await this.ensureInvitationParticipant(invitation, linkedContact);
+    const invitationWithParticipant = await this.ensureInvitationParticipant(
+      invitation,
+      linkedContact,
+    );
     const acceptedInvitation =
       invitationWithParticipant.status === InvitationStatus.ACCEPTED
         ? invitationWithParticipant
@@ -412,12 +411,16 @@ export class InvitationService {
     channel: InvitationChannel;
     ownerContactId: string;
   }): Promise<SendInvitationsResponseDto> {
-    const contactIds = Array.from(new Set(params.contactIds));
+    const contactIds = Array.from(new Set(params.contactIds)).filter(
+      (contactId) => contactId !== params.ownerContactId,
+    );
     const contacts = await this.participantRepository.findContactsByIdsForUser(
       contactIds,
       params.ownerContactId,
     );
-    const contactsById = new Map(contacts.map((contact) => [contact.id, contact]));
+    const contactsById = new Map(
+      contacts.map((contact) => [contact.id, contact]),
+    );
     const sent: InvitationResponseDto[] = [];
     const skipped: SendInvitationsResponseDto['skipped'] = [];
 
@@ -489,10 +492,11 @@ export class InvitationService {
   private async createAndSendInvitation(
     context: CreateInvitationContext,
   ): Promise<Invitation> {
+    this.ensureContactIsNotOwner(context.contact.id, context.ownerContactId);
     this.ensureContactCanReceiveInvite(context.contact, context.channel);
 
     const token = randomBytes(32).toString('hex');
-    const inviteUrl = this.buildInviteUrl(token);
+    const inviteUrl = this.buildInviteUrl(token, context);
     const invitation = await this.invitationRepository.createOrReuse({
       eventType: context.eventType,
       drawNameEventId: context.drawNameEventId,
@@ -529,6 +533,14 @@ export class InvitationService {
 
     if (channel === InvitationChannel.WHATSAPP && !contact.phoneNumber) {
       throw new BadRequestException('Contact phone number is missing');
+    }
+  }
+
+  private ensureContactIsNotOwner(contactId: string, ownerContactId: string) {
+    if (contactId === ownerContactId) {
+      throw new BadRequestException(
+        'You cannot send an invitation to yourself',
+      );
     }
   }
 
@@ -589,8 +601,39 @@ export class InvitationService {
     return invitation.eventContact;
   }
 
-  private buildInviteUrl(token: string): string {
+  private buildInviteUrl(
+    token: string,
+    context: CreateInvitationContext,
+  ): string {
+    if (
+      context.eventType === InvitationEventType.DRAW_NAME &&
+      context.drawNameEventId
+    ) {
+      return this.buildViktriSignInUrl(
+        this.buildFrontendUrl(
+          `/dashboard/draw-names/${context.drawNameEventId}`,
+        ),
+      );
+    }
+
+    if (context.eventType === InvitationEventType.GIFTING) {
+      return this.buildViktriSignInUrl(
+        this.buildFrontendUrl('/dashboard/gifts?tab=events'),
+      );
+    }
+
     return `${configService.getFrontendBaseUrl().replace(/\/$/, '')}/invite/${token}`;
+  }
+
+  private buildFrontendUrl(path: string): string {
+    return `${configService.getFrontendBaseUrl().replace(/\/$/, '')}${path}`;
+  }
+
+  private buildViktriSignInUrl(redirectUrl: string): string {
+    const url = new URL(configService.getViktriSignInUrl());
+    url.searchParams.set('redirectUrl', redirectUrl);
+
+    return url.toString();
   }
 
   private getRedirectPath(invitation: Invitation): string {
@@ -612,17 +655,25 @@ export class InvitationService {
       invitation.eventType === InvitationEventType.GIFTING &&
       invitation.giftingEventId
     ) {
-      return `/dashboard/gifts/${invitation.giftingEventId}`;
+      return '/dashboard/gifts?tab=events';
     }
 
     return `/dashboard/events/${invitation.eventId}`;
   }
 
   private getInvitationSubject(eventType: InvitationEventType): string {
+    if (eventType === InvitationEventType.DRAW_NAME) {
+      return 'Access your Yule draw name activity';
+    }
+
     return `You have been invited to ${this.getInvitationEventLabel(eventType)}`;
   }
 
   private getInvitationText(eventType: InvitationEventType): string {
+    if (eventType === InvitationEventType.DRAW_NAME) {
+      return 'Log in to Viktri to access Yule and continue to your draw name activity.';
+    }
+
     return `You have been invited to join ${this.getInvitationEventLabel(eventType)}.`;
   }
 
@@ -643,6 +694,17 @@ export class InvitationService {
     eventTitle?: string,
   ): string {
     const title = eventTitle ?? invitation.event?.title ?? 'your event';
+
+    if (invitation.eventType === InvitationEventType.DRAW_NAME) {
+      return `
+        <p>Hello,</p>
+        <p>You have been invited to join the draw name activity <strong>${title}</strong> on Yule.</p>
+        <p>Log in to Viktri to access Yule and continue to this draw name activity.</p>
+        <p>If you are already logged in, you can continue directly to Yule.</p>
+        <p><a href="${invitation.inviteUrl}">Continue to Yule</a></p>
+        <p>If the button does not work, copy this link into your browser: ${invitation.inviteUrl}</p>
+      `;
+    }
 
     return `
       <p>Hello,</p>

@@ -34,7 +34,7 @@ export class ParticipantService {
     createParticipantDto: CreateParticipantDto,
   ): Promise<StandardResopnse<EventParticipant>> {
     await this.ensureEventBelongsToCurrentUser(createParticipantDto.eventId);
-    await this.ensureContactBelongsToCurrentUser(
+    await this.ensureContactExistsAndConnectToCurrentUser(
       createParticipantDto.contactId,
     );
     await this.ensureParticipantDoesNotExistForContact(
@@ -66,7 +66,7 @@ export class ParticipantService {
       currentContactId,
     );
 
-    await this.ensureContactsBelongToCurrentUser(
+    await this.ensureContactsExistAndConnectToCurrentUser(
       createBulkParticipantDto.contactIds,
       currentContactId,
     );
@@ -363,7 +363,7 @@ export class ParticipantService {
       await this.ensureEventBelongsToCurrentUser(updateParticipantDto.eventId);
     }
 
-    await this.ensureContactBelongsToCurrentUser(
+    await this.ensureContactExistsAndConnectToCurrentUser(
       updateParticipantDto.contactId,
     );
 
@@ -501,32 +501,27 @@ export class ParticipantService {
     return createBulkParticipantDto.eventId;
   }
 
-  private async ensureContactBelongsToCurrentUser(eventContactId?: string) {
+  private async ensureContactExistsAndConnectToCurrentUser(
+    eventContactId?: string,
+  ) {
     if (!eventContactId) {
       return;
     }
 
     const currentContactId = RequestContext.getCurrentContactId();
-    const contactBelongsToUser =
-      await this.participantRepository.contactBelongsToUser(
-        eventContactId,
-        currentContactId,
-      );
-
-    if (!contactBelongsToUser) {
-      throw new NotFoundException('Event contact not found');
-    }
+    await this.ensureContactsExistAndConnectToCurrentUser(
+      [eventContactId],
+      currentContactId,
+    );
   }
 
-  private async ensureContactsBelongToCurrentUser(
+  private async ensureContactsExistAndConnectToCurrentUser(
     contactIds: string[],
-    userId: string,
+    ownerContactId: string,
   ) {
     const uniqueContactIds = Array.from(new Set(contactIds));
-    const contacts = await this.participantRepository.findContactsByIdsForUser(
-      uniqueContactIds,
-      userId,
-    );
+    const contacts =
+      await this.participantRepository.findContactsByIds(uniqueContactIds);
     const foundContactIds = new Set(contacts.map((contact) => contact.id));
     const missingContactIds = uniqueContactIds.filter(
       (contactId) => !foundContactIds.has(contactId),
@@ -537,6 +532,11 @@ export class ParticipantService {
         `Contact not found: ${missingContactIds.join(', ')}`,
       );
     }
+
+    await this.participantRepository.ensureContactConnections(
+      ownerContactId,
+      uniqueContactIds,
+    );
   }
 
   private async ensureParticipantDoesNotExistForContact(

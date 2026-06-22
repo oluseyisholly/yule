@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { Brackets, DataSource, DeepPartial, Repository } from 'typeorm';
 import { RequestContext } from 'src/common/context/requestContext';
+import { EventOption } from 'src/common/index.enum';
 import {
   FindDrawNameEventsQueryDto,
   UpdateDrawNameEventBaseEventDto,
@@ -38,7 +39,11 @@ export class DrawNameEventRepository extends BaseRepository<DrawNameEvent> {
       const drawNameEventRepo = manager.getRepository(DrawNameEvent);
 
       const event = await eventRepo.save(
-        eventRepo.create({ ...eventPayload, createdById: actorId }),
+        eventRepo.create({
+          ...eventPayload,
+          eventOption: EventOption.DRAW_NAME,
+          createdById: actorId,
+        }),
       );
 
       await drawNameEventRepo.save(
@@ -72,6 +77,7 @@ export class DrawNameEventRepository extends BaseRepository<DrawNameEvent> {
         'event.title',
         'event.description',
         'event.eventTypeId',
+        'event.eventOption',
         'event.eventDate',
         'event.status',
         'event.createdAt',
@@ -133,6 +139,7 @@ export class DrawNameEventRepository extends BaseRepository<DrawNameEvent> {
         'event.title',
         'event.description',
         'event.eventTypeId',
+        'event.eventOption',
         'event.eventDate',
         'event.status',
         'event.createdAt',
@@ -191,6 +198,7 @@ export class DrawNameEventRepository extends BaseRepository<DrawNameEvent> {
         'event.title',
         'event.description',
         'event.eventTypeId',
+        'event.eventOption',
         'event.eventDate',
         'event.status',
         'event.createdAt',
@@ -231,6 +239,7 @@ export class DrawNameEventRepository extends BaseRepository<DrawNameEvent> {
         'event.title',
         'event.description',
         'event.eventTypeId',
+        'event.eventOption',
         'event.eventDate',
         'event.status',
         'event.createdAt',

@@ -18,6 +18,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Trim } from 'src/decorators/trim.decorator';
+import { EventOption } from 'src/common/index.enum';
 import { BaseFilterDto } from './baseFilter.dto';
 import {
   DeleteResponseDto,
@@ -188,6 +189,9 @@ export class DrawNameEventBaseEventResponseDto {
 
   @ApiProperty()
   eventTypeId: string;
+
+  @ApiPropertyOptional({ enum: EventOption })
+  eventOption?: EventOption | null;
 
   @ApiPropertyOptional()
   eventDate?: Date;

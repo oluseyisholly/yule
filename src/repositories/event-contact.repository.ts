@@ -221,6 +221,48 @@ export class EventContactRepository {
 
   async findAllEventContacts(
     query: FindEventContactsQueryDto,
+    excludeContactId?: string,
+  ): Promise<PaginatedRecordsDto<Contact>> {
+    const qb = this.contactRepo.createQueryBuilder('contact');
+    const helper = new QueryBuilderHelper(qb);
+
+    helper
+      .applyFilter({
+        'contact.gender': query.gender,
+      })
+      .applyDateRange('contact.createdAt', query.startDate, query.endDate)
+      .applySorting('contact.createdAt', query.sortOrder);
+
+    if (query.searchQuery) {
+      qb.andWhere(
+        new Brackets((subQuery) => {
+          subQuery.where('contact."firstName" ILIKE :searchQuery', {
+            searchQuery: `%${query.searchQuery}%`,
+          });
+          subQuery.orWhere('contact."lastName" ILIKE :searchQuery', {
+            searchQuery: `%${query.searchQuery}%`,
+          });
+          subQuery.orWhere('contact.email ILIKE :searchQuery', {
+            searchQuery: `%${query.searchQuery}%`,
+          });
+          subQuery.orWhere('contact.phoneNumber ILIKE :searchQuery', {
+            searchQuery: `%${query.searchQuery}%`,
+          });
+        }),
+      );
+    }
+
+    if (excludeContactId) {
+      qb.andWhere('contact.id != :excludeContactId', { excludeContactId });
+    }
+
+    qb.andWhere('contact.deleted_at IS NULL');
+
+    return helper.paginate(query);
+  }
+
+  async findMyEventContacts(
+    query: FindEventContactsQueryDto,
     ownerContactId: string,
   ): Promise<PaginatedRecordsDto<Contact>> {
     const qb = this.contactRepo

@@ -19,9 +19,7 @@ import { EventTypeRepository } from 'src/repositories/event-type.repository';
 
 @Injectable()
 export class EventTypeService {
-  constructor(
-    private readonly eventTypeRepository: EventTypeRepository,
-  ) {}
+  constructor(private readonly eventTypeRepository: EventTypeRepository) {}
 
   async createEventType(
     createEventTypeDto: CreateEventTypeDto,
@@ -97,7 +95,7 @@ export class EventTypeService {
     id: string,
     updateEventTypeDto: UpdateEventTypeDto,
   ): Promise<StandardResopnse<EventTypeResponseDto>> {
-    await this.getEventTypeOrThrow(id);
+    await this.getEditableEventTypeOrThrow(id);
     await this.ensureEventTypeNameIsUnique(updateEventTypeDto.name, id);
 
     const updatedEventType = await this.eventTypeRepository.update(
@@ -115,7 +113,7 @@ export class EventTypeService {
   async deleteEventType(
     id: string,
   ): Promise<StandardResopnse<DeleteResponseDto>> {
-    await this.getEventTypeOrThrow(id);
+    await this.getEditableEventTypeOrThrow(id);
     await this.eventTypeRepository.delete(id);
 
     return {
@@ -127,6 +125,20 @@ export class EventTypeService {
 
   private async getEventTypeOrThrow(id: string): Promise<EventType> {
     const eventType = await this.eventTypeRepository.findById(id);
+
+    if (!eventType) {
+      throw new NotFoundException('Event type not found');
+    }
+
+    return eventType;
+  }
+
+  private async getEditableEventTypeOrThrow(id: string): Promise<EventType> {
+    const currentContactId = RequestContext.getCurrentContactId();
+    const eventType = await this.eventTypeRepository.findByIdForUser(
+      id,
+      currentContactId,
+    );
 
     if (!eventType) {
       throw new NotFoundException('Event type not found');

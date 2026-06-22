@@ -103,6 +103,56 @@ export class EventContactController {
     return this.eventContactService.createEventContact(createEventContactDto);
   }
 
+  @Get('me/contacts')
+  @ApiOperation({ summary: 'Get paginated contacts for logged-in user' })
+  @ApiQuery({ name: 'page', required: false, example: 1 })
+  @ApiQuery({ name: 'per_page', required: false, example: 25 })
+  @ApiQuery({ name: 'searchQuery', required: false })
+  @ApiQuery({ name: 'gender', required: false, enum: Gender })
+  @ApiQuery({ name: 'startDate', required: false })
+  @ApiQuery({ name: 'endDate', required: false })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: SortOrder,
+    example: SortOrder.DESC,
+  })
+  @ApiOkResponse({
+    description: 'Logged-in user contacts fetched successfully',
+    type: PaginatedEventContactsResponseEnvelopeDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid JWT token' })
+  findMyEventContacts(
+    @Query() query: FindEventContactsQueryDto,
+  ): Promise<StandardResopnse<PaginatedRecordsDto<Contact>>> {
+    return this.eventContactService.findMyEventContacts(query);
+  }
+
+  @Get('exclude-me')
+  @ApiOperation({ summary: 'Get paginated event contacts excluding logged-in user' })
+  @ApiQuery({ name: 'page', required: false, example: 1 })
+  @ApiQuery({ name: 'per_page', required: false, example: 25 })
+  @ApiQuery({ name: 'searchQuery', required: false })
+  @ApiQuery({ name: 'gender', required: false, enum: Gender })
+  @ApiQuery({ name: 'startDate', required: false })
+  @ApiQuery({ name: 'endDate', required: false })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: SortOrder,
+    example: SortOrder.DESC,
+  })
+  @ApiOkResponse({
+    description: 'Event contacts fetched successfully',
+    type: PaginatedEventContactsResponseEnvelopeDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid JWT token' })
+  findAllEventContactsExcludingMe(
+    @Query() query: FindEventContactsQueryDto,
+  ): Promise<StandardResopnse<PaginatedRecordsDto<Contact>>> {
+    return this.eventContactService.findAllEventContactsExcludingMe(query);
+  }
+
   @Get()
   @ApiOperation({ summary: 'Get paginated event contacts' })
   @ApiQuery({ name: 'page', required: false, example: 1 })

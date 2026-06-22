@@ -1,6 +1,8 @@
 export enum SwaggerApiEnumTags {
   APP = 'app',
   USER = 'User',
+  DASHBOARD = 'Dashboard',
+  EVENT = 'Event',
   EVENTTYPE = 'Event Type',
   DRAWNAMEEVENT = 'Draw Name Event',
   WISHLISTEVENT = 'Wishlist Event',
@@ -21,6 +23,12 @@ export enum EventParticipantRole {
 export enum Gender {
   MALE = 'male',
   FEMALE = 'female',
+}
+
+export enum EventOption {
+  DRAW_NAME = 'draw_name',
+  WISHLIST = 'wishlist',
+  GIFTING = 'gifting',
 }
 
 export enum EventLogAction {

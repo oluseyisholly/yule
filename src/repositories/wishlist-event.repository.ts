@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { Brackets, DataSource, DeepPartial, Repository } from 'typeorm';
 import { RequestContext } from 'src/common/context/requestContext';
+import { EventOption } from 'src/common/index.enum';
 import {
   FindWishlistEventsQueryDto,
   UpdateWishlistEventBaseEventDto,
@@ -43,7 +44,11 @@ export class WishlistEventRepository extends BaseRepository<WishlistEvent> {
       const participantRepo = manager.getRepository(EventParticipant);
 
       const event = await eventRepo.save(
-        eventRepo.create({ ...eventPayload, createdById: actorId }),
+        eventRepo.create({
+          ...eventPayload,
+          eventOption: EventOption.WISHLIST,
+          createdById: actorId,
+        }),
       );
 
       const wishlistEvent = await wishlistEventRepo.save(
@@ -224,6 +229,7 @@ export class WishlistEventRepository extends BaseRepository<WishlistEvent> {
         'event.title',
         'event.description',
         'event.eventTypeId',
+        'event.eventOption',
         'event.eventDate',
         'event.status',
         'event.createdAt',

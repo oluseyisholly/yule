@@ -17,6 +17,7 @@ import {
 } from 'class-validator';
 import { DateNotAfter } from 'src/decorators/date-not-after.decorator';
 import { Trim } from 'src/decorators/trim.decorator';
+import { EventOption } from 'src/common/index.enum';
 import { BaseFilterDto } from './baseFilter.dto';
 import {
   DeleteResponseDto,
@@ -183,6 +184,9 @@ export class WishlistEventBaseEventResponseDto {
   @ApiProperty()
   eventTypeId: string;
 
+  @ApiPropertyOptional({ enum: EventOption })
+  eventOption?: EventOption | null;
+
   @ApiPropertyOptional()
   eventDate?: Date;
 
@@ -237,6 +241,9 @@ export class PublicWishlistEventResponseDto {
 
   @ApiPropertyOptional()
   eventDate?: Date;
+
+  @ApiPropertyOptional({ enum: EventOption })
+  eventOption?: EventOption | null;
 
   @ApiProperty()
   visibility: string;

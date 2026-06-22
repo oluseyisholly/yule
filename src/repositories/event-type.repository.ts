@@ -36,6 +36,14 @@ export class EventTypeRepository extends BaseRepository<EventType> {
     return qb.getOne();
   }
 
+  async findByIdForUser(id: string, userId: string): Promise<EventType | null> {
+    return this.repo
+      .createQueryBuilder('eventType')
+      .where('eventType.id = :id', { id })
+      .andWhere('eventType.created_by_id = :userId', { userId })
+      .getOne();
+  }
+
   async findAllEventTypes(
     query: FindEventTypesQueryDto,
   ): Promise<PaginatedRecordsDto<EventType>> {

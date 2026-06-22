@@ -9,6 +9,7 @@ import {
   Repository,
 } from 'typeorm';
 import { RequestContext } from 'src/common/context/requestContext';
+import { EventOption } from 'src/common/index.enum';
 import {
   FindGiftsQueryDto,
   GroupedGivenGiftResponseDto,
@@ -46,6 +47,7 @@ export class GiftRepository extends BaseRepository<EventGift> {
         'event.title',
         'event.description',
         'event.eventTypeId',
+        'event.eventOption',
         'event.eventDate',
         'event.status',
         'event.createdById',
@@ -158,6 +160,7 @@ export class GiftRepository extends BaseRepository<EventGift> {
         'event.title',
         'event.description',
         'event.eventTypeId',
+        'event.eventOption',
         'event.eventDate',
         'event.status',
         'event.createdById',
@@ -262,6 +265,7 @@ export class GiftRepository extends BaseRepository<EventGift> {
       '"recipientParticipant".event_contact_id = :contactId',
       { contactId },
     );
+    qb.andWhere('gift.giver_participant_id IS NOT NULL');
     const helper = new QueryBuilderHelper(qb);
 
     helper
@@ -304,6 +308,7 @@ export class GiftRepository extends BaseRepository<EventGift> {
         'event.title',
         'event.description',
         'event.eventTypeId',
+        'event.eventOption',
         'event.eventDate',
         'event.status',
         'recipientParticipant',
@@ -635,6 +640,7 @@ export class GiftRepository extends BaseRepository<EventGift> {
         'event.title',
         'event.description',
         'event.eventTypeId',
+        'event.eventOption',
         'event.eventDate',
         'event.status',
         'recipientParticipant',
@@ -693,6 +699,7 @@ export class GiftRepository extends BaseRepository<EventGift> {
         'event.title',
         'event.description',
         'event.eventTypeId',
+        'event.eventOption',
         'event.eventDate',
         'event.status',
         'recipientParticipant',
@@ -755,6 +762,7 @@ export class GiftRepository extends BaseRepository<EventGift> {
         'event.title',
         'event.description',
         'event.eventTypeId',
+        'event.eventOption',
         'event.eventDate',
         'event.status',
         'recipientParticipant',
@@ -942,6 +950,7 @@ export class GiftRepository extends BaseRepository<EventGift> {
       .addSelect('event.title', 'eventTitle')
       .addSelect('event.description', 'eventDescription')
       .addSelect('event.event_type_id', 'eventTypeId')
+      .addSelect('event.event_option', 'eventOption')
       .addSelect('event.eventDate', 'eventDate')
       .addSelect('event.status', 'eventStatus')
       .addSelect(
@@ -982,6 +991,7 @@ export class GiftRepository extends BaseRepository<EventGift> {
       .addGroupBy('event.title')
       .addGroupBy('event.description')
       .addGroupBy('event.event_type_id')
+      .addGroupBy('event.event_option')
       .addGroupBy('event.eventDate')
       .addGroupBy('event.status')
       .orderBy('MAX(gift.created_at)', query.sortOrder ?? 'DESC')
@@ -1005,6 +1015,7 @@ export class GiftRepository extends BaseRepository<EventGift> {
         eventTitle: string;
         eventDescription: string | null;
         eventTypeId: string;
+        eventOption: EventOption | null;
         eventDate: Date | null;
         eventStatus: string;
         recipientCount: number;
@@ -1043,6 +1054,7 @@ export class GiftRepository extends BaseRepository<EventGift> {
           title: row.eventTitle,
           description: row.eventDescription,
           eventTypeId: row.eventTypeId,
+          eventOption: row.eventOption,
           eventDate: row.eventDate ?? undefined,
           status: row.eventStatus,
         },

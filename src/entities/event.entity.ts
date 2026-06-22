@@ -16,6 +16,7 @@ import { DrawNameEvent } from './draw-name-event.entity';
 import { Base } from './base';
 import { EventLog } from './event-log.entity';
 import { EventGift } from './gift.entity';
+import { EventOption } from 'src/common/index.enum';
 
 @Entity('events')
 export class Event extends Base {
@@ -33,6 +34,14 @@ export class Event extends Base {
 
   @Column({ name: 'event_type_id', type: 'uuid' })
   eventTypeId: string;
+
+  @Column({
+    name: 'event_option',
+    type: 'enum',
+    enum: EventOption,
+    nullable: true,
+  })
+  eventOption?: EventOption | null;
 
   @ManyToOne(() => Contact, {
     nullable: true,

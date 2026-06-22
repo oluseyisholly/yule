@@ -7,6 +7,7 @@ import {
 } from 'src/dtos/participant.dto';
 import { PaginatedRecordsDto } from 'src/dtos/general.dto';
 import { Contact } from 'src/entities/contact.entity';
+import { ContactConnection } from 'src/entities/contact-connection.entity';
 import { Event } from 'src/entities/event.entity';
 import { EventParticipantExclusion } from 'src/entities/event-participant-exclusion.entity';
 import {
@@ -39,6 +40,7 @@ export class ParticipantRepository extends BaseRepository<EventParticipant> {
         'event.title',
         'event.description',
         'event.eventTypeId',
+        'event.eventOption',
         'event.eventDate',
         'event.status',
         'eventContact.id',
@@ -81,6 +83,7 @@ export class ParticipantRepository extends BaseRepository<EventParticipant> {
         'event.title',
         'event.description',
         'event.eventTypeId',
+        'event.eventOption',
         'event.eventDate',
         'event.status',
         'eventContact.id',
@@ -180,6 +183,7 @@ export class ParticipantRepository extends BaseRepository<EventParticipant> {
         'event.title',
         'event.description',
         'event.eventTypeId',
+        'event.eventOption',
         'event.eventDate',
         'event.status',
         'eventContact.id',
@@ -214,6 +218,9 @@ export class ParticipantRepository extends BaseRepository<EventParticipant> {
       ])
       .where('participant.event_id = :eventId', { eventId })
       .andWhere('event.created_by_id = :ownerContactId', { ownerContactId })
+      .andWhere('participant.event_contact_id != :ownerContactId', {
+        ownerContactId,
+      })
       .andWhere('participant.role != :creatorRole', {
         creatorRole: EventParticipantRole.CREATOR,
       })
@@ -321,6 +328,19 @@ export class ParticipantRepository extends BaseRepository<EventParticipant> {
     return count > 0;
   }
 
+  async findContactsByIds(contactIds: string[]): Promise<Contact[]> {
+    if (!contactIds.length) {
+      return [];
+    }
+
+    return this.dataSource
+      .getRepository(Contact)
+      .createQueryBuilder('contact')
+      .where('contact.id IN (:...contactIds)', { contactIds })
+      .andWhere('contact.deleted_at IS NULL')
+      .getMany();
+  }
+
   async findContactsByIdsForUser(
     contactIds: string[],
     ownerContactId: string,
@@ -342,6 +362,48 @@ export class ParticipantRepository extends BaseRepository<EventParticipant> {
         ownerContactId,
       })
       .getMany();
+  }
+
+  async ensureContactConnections(
+    ownerContactId: string,
+    contactIds: string[],
+  ): Promise<void> {
+    const uniqueContactIds = Array.from(new Set(contactIds)).filter(
+      (contactId) => contactId !== ownerContactId,
+    );
+
+    if (!uniqueContactIds.length) {
+      return;
+    }
+
+    const contactConnectionRepo =
+      this.dataSource.getRepository(ContactConnection);
+    const existingConnections = await contactConnectionRepo.find({
+      where: {
+        ownerContactId,
+        contactId: In(uniqueContactIds),
+      },
+    });
+    const existingContactIds = new Set(
+      existingConnections.map((connection) => connection.contactId),
+    );
+    const missingContactIds = uniqueContactIds.filter(
+      (contactId) => !existingContactIds.has(contactId),
+    );
+
+    if (!missingContactIds.length) {
+      return;
+    }
+
+    await contactConnectionRepo.save(
+      missingContactIds.map((contactId) =>
+        contactConnectionRepo.create({
+          ownerContactId,
+          contactId,
+          createdById: ownerContactId,
+        }),
+      ),
+    );
   }
 
   async participantExistsForEventContact(
@@ -406,6 +468,7 @@ export class ParticipantRepository extends BaseRepository<EventParticipant> {
         'event.title',
         'event.description',
         'event.eventTypeId',
+        'event.eventOption',
         'event.eventDate',
         'event.status',
         'eventContact.id',

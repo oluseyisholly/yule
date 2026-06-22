@@ -3,6 +3,8 @@ import { Base } from './base';
 import { Gender } from 'src/common/index.enum';
 
 @Entity('contacts')
+@Index('IDX_contacts_email_unique', ['email'], { unique: true })
+@Index('IDX_contacts_user_id_unique', ['userId'], { unique: true })
 @Index(['createdById', 'email'])
 @Index(['createdById', 'phoneNumber'])
 @Unique(['createdById', 'email'])

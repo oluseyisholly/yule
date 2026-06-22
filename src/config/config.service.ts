@@ -31,6 +31,13 @@ class ConfigService {
     return this.getValue('FRONT_END_BASE_URL', true);
   }
 
+  public getViktriSignInUrl() {
+    return (
+      this.getValue('VIKTRI_SIGN_IN_URL', false) ||
+      'https://viktri.vercel.app/signin?source=yule'
+    );
+  }
+
   public getJwtSecret() {
     if (this.isProduction()) {
       return this.getValue('JWT_SECRET', true);

@@ -78,19 +78,26 @@ export class EventContactService {
     syncEventContactDto: SyncEventContactDto,
   ): Promise<StandardResopnse<Contact>> {
     const ownerContactId = RequestContext.getCurrentContactId();
-    const existingContact = await this.eventContactRepository.findByEmail(
-      syncEventContactDto.email,
-    );
+    const existingContactByEmail =
+      await this.eventContactRepository.findByEmail(syncEventContactDto.email);
+    const existingContactByUserId =
+      await this.eventContactRepository.findByUserId(syncEventContactDto.userId);
+    const contactToSync = existingContactByEmail ?? existingContactByUserId;
 
     // await this.ensurePhoneNumberIsAvailable(
     //   syncEventContactDto.phoneNumber,
-    //   existingContact?.id,
+    //   contactToSync?.id,
     // );
 
-    if (existingContact) {
+    await this.ensureEmailAndUserIdDoNotBelongToDifferentContacts(
+      existingContactByEmail?.id,
+      existingContactByUserId?.id,
+    );
+
+    if (contactToSync) {
       const updatedContact =
         await this.eventContactRepository.updateEventContact(
-          existingContact.id,
+          contactToSync.id,
           syncEventContactDto,
           ownerContactId,
         );
@@ -210,6 +217,32 @@ export class EventContactService {
       return existingContact;
     }
 
+    const existingEmailContact = authUser?.email
+      ? await this.eventContactRepository.findByEmail(authUser.email)
+      : null;
+
+    if (existingEmailContact) {
+      if (
+        existingEmailContact.userId &&
+        existingEmailContact.userId !== currentUserId
+      ) {
+        throw new ConflictException(
+          'A contact with this email is already linked to another profile',
+        );
+      }
+
+      const linkedContact = existingEmailContact.userId
+        ? existingEmailContact
+        : await this.eventContactRepository.linkContactToUser(
+            existingEmailContact.id,
+            currentUserId,
+          );
+
+      RequestContext.set('currentContactId', linkedContact.id);
+
+      return linkedContact;
+    }
+
     const contact =
       await this.eventContactRepository.createContactFromAuthPayload(
         this.toAuthContactPayload(currentUserId, authUser),
@@ -228,7 +261,7 @@ export class EventContactService {
       userId,
       firstName: authUser?.firstName,
       lastName: authUser?.lastName,
-      email: authUser?.email,
+      email: authUser?.email?.toLowerCase(),
       phoneNumber: authUser?.phoneNumber,
     };
   }
@@ -236,17 +269,46 @@ export class EventContactService {
   async findAllEventContacts(
     query: FindEventContactsQueryDto,
   ): Promise<StandardResopnse<PaginatedRecordsDto<Contact>>> {
-    const ownerContactId = RequestContext.getCurrentContactId();
+    const paginatedContacts =
+      await this.eventContactRepository.findAllEventContacts(query);
 
+    return {
+      code: HttpStatus.OK,
+      message: 'Event contacts fetched successfully',
+      data: paginatedContacts,
+    };
+  }
+
+  async findAllEventContactsExcludingMe(
+    query: FindEventContactsQueryDto,
+  ): Promise<StandardResopnse<PaginatedRecordsDto<Contact>>> {
+    const currentContactId = RequestContext.getCurrentContactId();
     const paginatedContacts =
       await this.eventContactRepository.findAllEventContacts(
+        query,
+        currentContactId,
+      );
+
+    return {
+      code: HttpStatus.OK,
+      message: 'Event contacts fetched successfully',
+      data: paginatedContacts,
+    };
+  }
+
+  async findMyEventContacts(
+    query: FindEventContactsQueryDto,
+  ): Promise<StandardResopnse<PaginatedRecordsDto<Contact>>> {
+    const ownerContactId = RequestContext.getCurrentContactId();
+    const paginatedContacts =
+      await this.eventContactRepository.findMyEventContacts(
         query,
         ownerContactId,
       );
 
     return {
       code: HttpStatus.OK,
-      message: 'Event contacts fetched successfully',
+      message: 'Logged-in user contacts fetched successfully',
       data: paginatedContacts,
     };
   }
@@ -283,5 +345,22 @@ export class EventContactService {
         'A contact with this phone number already exists',
       );
     }
+  }
+
+  private async ensureEmailAndUserIdDoNotBelongToDifferentContacts(
+    emailContactId?: string,
+    userIdContactId?: string,
+  ): Promise<void> {
+    if (
+      !emailContactId ||
+      !userIdContactId ||
+      emailContactId === userIdContactId
+    ) {
+      return;
+    }
+
+    throw new ConflictException(
+      'This email is already linked to another profile',
+    );
   }
 }
