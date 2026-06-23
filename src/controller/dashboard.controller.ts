@@ -11,6 +11,8 @@ import { SwaggerApiEnumTags } from 'src/common/index.enum';
 import {
   DrawNameMetricsResponseDto,
   DrawNameMetricsResponseEnvelopeDto,
+  GiftMetricsResponseDto,
+  GiftMetricsResponseEnvelopeDto,
   WishlistMetricsResponseDto,
   WishlistMetricsResponseEnvelopeDto,
 } from 'src/dtos/dashboard.dto';
@@ -42,5 +44,16 @@ export class DashboardController {
   @ApiUnauthorizedResponse({ description: 'Missing or invalid JWT token' })
   getWishlistMetrics(): Promise<StandardResopnse<WishlistMetricsResponseDto>> {
     return this.dashboardService.getWishlistMetrics();
+  }
+
+  @Get('gift-metrics')
+  @ApiOperation({ summary: 'Get gift dashboard metrics' })
+  @ApiOkResponse({
+    description: 'Gift metrics fetched successfully',
+    type: GiftMetricsResponseEnvelopeDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid JWT token' })
+  getGiftMetrics(): Promise<StandardResopnse<GiftMetricsResponseDto>> {
+    return this.dashboardService.getGiftMetrics();
   }
 }

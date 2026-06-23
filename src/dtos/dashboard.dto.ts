@@ -36,6 +36,9 @@ export class DrawNameMetricsResponseDto {
   activeDrawNames: DrawNameActiveMetricDto;
 
   @ApiProperty({ type: DrawNameCountMetricDto })
+  totalDrawNamesParticipated: DrawNameCountMetricDto;
+
+  @ApiProperty({ type: DrawNameCountMetricDto })
   totalNames: DrawNameCountMetricDto;
 
   @ApiProperty({ type: DrawNameCountMetricDto })
@@ -91,5 +94,44 @@ export class WishlistMetricsResponseEnvelopeDto extends createResponseDto(
   {
     codeExample: 200,
     messageExample: 'Wishlist metrics fetched successfully',
+  },
+) {}
+
+export class GiftTrendMetricDto {
+  @ApiProperty()
+  value: number;
+
+  @ApiProperty()
+  percentageChangeThisMonth: number;
+
+  @ApiProperty()
+  currentMonth: number;
+
+  @ApiProperty()
+  previousMonth: number;
+
+  @ApiProperty()
+  currentWeek: number;
+}
+
+export class GiftMetricsResponseDto {
+  @ApiProperty({ type: GiftTrendMetricDto })
+  totalGifts: GiftTrendMetricDto;
+
+  @ApiProperty({ type: GiftTrendMetricDto })
+  totalAmountSpent: GiftTrendMetricDto;
+
+  @ApiProperty({ type: GiftTrendMetricDto })
+  totalPeople: GiftTrendMetricDto;
+
+  @ApiProperty({ type: GiftTrendMetricDto })
+  totalSellers: GiftTrendMetricDto;
+}
+
+export class GiftMetricsResponseEnvelopeDto extends createResponseDto(
+  GiftMetricsResponseDto,
+  {
+    codeExample: 200,
+    messageExample: 'Gift metrics fetched successfully',
   },
 ) {}
