@@ -135,3 +135,50 @@ export class GiftMetricsResponseEnvelopeDto extends createResponseDto(
     messageExample: 'Gift metrics fetched successfully',
   },
 ) {}
+
+export class HangoutTrendMetricDto {
+  @ApiProperty()
+  value: number;
+
+  @ApiProperty()
+  percentageChangeThisMonth: number;
+
+  @ApiProperty()
+  currentMonth: number;
+
+  @ApiProperty()
+  previousMonth: number;
+
+  @ApiProperty()
+  currentWeek: number;
+}
+
+export class HangoutMonthlyMetricDto {
+  @ApiProperty()
+  value: number;
+
+  @ApiProperty()
+  newThisWeek: number;
+}
+
+export class HangoutMetricsResponseDto {
+  @ApiProperty({ type: HangoutTrendMetricDto })
+  totalHangouts: HangoutTrendMetricDto;
+
+  @ApiProperty({ type: DrawNameCountMetricDto })
+  peopleMet: DrawNameCountMetricDto;
+
+  @ApiProperty({ type: HangoutMonthlyMetricDto })
+  totalThisMonth: HangoutMonthlyMetricDto;
+
+  @ApiProperty({ type: HangoutTrendMetricDto })
+  amountSpent: HangoutTrendMetricDto;
+}
+
+export class HangoutMetricsResponseEnvelopeDto extends createResponseDto(
+  HangoutMetricsResponseDto,
+  {
+    codeExample: 200,
+    messageExample: 'Hangout metrics fetched successfully',
+  },
+) {}

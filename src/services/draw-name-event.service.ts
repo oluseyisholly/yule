@@ -75,6 +75,42 @@ export class DrawNameEventService {
     };
   }
 
+  async findCreatedDrawNameEvents(
+    query: FindDrawNameEventsQueryDto,
+  ): Promise<StandardResopnse<PaginatedRecordsDto<DrawNameEvent>>> {
+    const currentContactId = RequestContext.getCurrentContactId();
+
+    const paginatedDrawNameEvents =
+      await this.drawNameEventRepository.findCreatedDrawNameEvents(
+        query,
+        currentContactId,
+      );
+
+    return {
+      code: HttpStatus.OK,
+      message: 'Created draw name events fetched successfully',
+      data: paginatedDrawNameEvents,
+    };
+  }
+
+  async findParticipatedDrawNameEvents(
+    query: FindDrawNameEventsQueryDto,
+  ): Promise<StandardResopnse<PaginatedRecordsDto<DrawNameEvent>>> {
+    const currentContactId = RequestContext.getCurrentContactId();
+
+    const paginatedDrawNameEvents =
+      await this.drawNameEventRepository.findParticipatedDrawNameEvents(
+        query,
+        currentContactId,
+      );
+
+    return {
+      code: HttpStatus.OK,
+      message: 'Participated draw name events fetched successfully',
+      data: paginatedDrawNameEvents,
+    };
+  }
+
   async drawNames(
     drawNameEventId: string,
   ): Promise<StandardResopnse<EventParticipant[]>> {

@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { Brackets, DataSource, DeepPartial, Repository } from 'typeorm';
+import {
+  Brackets,
+  DataSource,
+  DeepPartial,
+  Repository,
+  SelectQueryBuilder,
+} from 'typeorm';
 import { RequestContext } from 'src/common/context/requestContext';
 import { EventOption } from 'src/common/index.enum';
 import {
@@ -83,31 +89,39 @@ export class WishlistEventRepository extends BaseRepository<WishlistEvent> {
     contactId: string,
   ): Promise<PaginatedRecordsDto<WishlistEvent>> {
     const qb = this.createWishlistEventBaseQuery(contactId);
-
-    const helper = new QueryBuilderHelper(qb);
-
-    helper
-      .applyFilter({
-        'event.status': query.status,
-        'wishlistEvent.visibility': query.visibility,
-      })
-      .applyDateRange('event.eventDate', query.startDate, query.endDate)
-      .applySorting('event.createdAt', query.sortOrder);
-
-    if (query.searchQuery) {
-      qb.andWhere(
-        new Brackets((subQuery) => {
-          subQuery.where('event.title ILIKE :searchQuery', {
-            searchQuery: `%${query.searchQuery}%`,
-          });
-          subQuery.orWhere('event.description ILIKE :searchQuery', {
-            searchQuery: `%${query.searchQuery}%`,
-          });
-        }),
-      );
-    }
+    const helper = this.applyWishlistEventListQueryOptions(qb, query);
 
     this.applyReadableByContactFilter(qb, contactId);
+
+    return helper.paginate(query);
+  }
+
+  async findCreatedWishlistEvents(
+    query: FindWishlistEventsQueryDto,
+    contactId: string,
+  ): Promise<PaginatedRecordsDto<WishlistEvent>> {
+    const qb = this.createWishlistEventBaseQuery(contactId);
+    const helper = this.applyWishlistEventListQueryOptions(qb, query);
+
+    qb.andWhere('event.created_by_id = :contactId', { contactId });
+
+    return helper.paginate(query);
+  }
+
+  async findParticipatedWishlistEvents(
+    query: FindWishlistEventsQueryDto,
+    contactId: string,
+  ): Promise<PaginatedRecordsDto<WishlistEvent>> {
+    const qb = this.createWishlistEventBaseQuery(contactId);
+    const helper = this.applyWishlistEventListQueryOptions(qb, query);
+
+    qb.andWhere(`EXISTS ${this.createParticipantAccessSubQuery(qb)}`, {
+      contactId,
+    })
+      .andWhere('event.created_by_id != :contactId', { contactId })
+      .andWhere('LOWER(event.status) != :draftStatus', {
+        draftStatus: 'draft',
+      });
 
     return helper.paginate(query);
   }
@@ -265,8 +279,38 @@ export class WishlistEventRepository extends BaseRepository<WishlistEvent> {
     );
   }
 
+  private applyWishlistEventListQueryOptions(
+    qb: SelectQueryBuilder<WishlistEvent>,
+    query: FindWishlistEventsQueryDto,
+  ): QueryBuilderHelper<WishlistEvent> {
+    const helper = new QueryBuilderHelper(qb);
+
+    helper
+      .applyFilter({
+        'event.status': query.status,
+        'wishlistEvent.visibility': query.visibility,
+      })
+      .applyDateRange('event.eventDate', query.startDate, query.endDate)
+      .applySorting('event.createdAt', query.sortOrder);
+
+    if (query.searchQuery) {
+      qb.andWhere(
+        new Brackets((subQuery) => {
+          subQuery.where('event.title ILIKE :searchQuery', {
+            searchQuery: `%${query.searchQuery}%`,
+          });
+          subQuery.orWhere('event.description ILIKE :searchQuery', {
+            searchQuery: `%${query.searchQuery}%`,
+          });
+        }),
+      );
+    }
+
+    return helper;
+  }
+
   private createParticipantAccessSubQuery(
-    qb: ReturnType<Repository<WishlistEvent>['createQueryBuilder']>,
+    qb: SelectQueryBuilder<WishlistEvent>,
   ) {
     return qb
       .subQuery()

@@ -56,6 +56,40 @@ export class GiftingEventService {
     };
   }
 
+  async findCreatedGiftingEvents(
+    query: FindGiftingEventsQueryDto,
+  ): Promise<StandardResopnse<PaginatedRecordsDto<GiftingEvent>>> {
+    const currentContactId = RequestContext.getCurrentContactId();
+    const paginatedGiftingEvents =
+      await this.giftingEventRepository.findCreatedGiftingEvents(
+        query,
+        currentContactId,
+      );
+
+    return {
+      code: HttpStatus.OK,
+      message: 'Created gifting events fetched successfully',
+      data: paginatedGiftingEvents,
+    };
+  }
+
+  async findParticipatedGiftingEvents(
+    query: FindGiftingEventsQueryDto,
+  ): Promise<StandardResopnse<PaginatedRecordsDto<GiftingEvent>>> {
+    const currentContactId = RequestContext.getCurrentContactId();
+    const paginatedGiftingEvents =
+      await this.giftingEventRepository.findParticipatedGiftingEvents(
+        query,
+        currentContactId,
+      );
+
+    return {
+      code: HttpStatus.OK,
+      message: 'Participated gifting events fetched successfully',
+      data: paginatedGiftingEvents,
+    };
+  }
+
   async findGiftingEventById(
     giftingEventId: string,
   ): Promise<StandardResopnse<GiftingEvent>> {

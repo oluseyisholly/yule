@@ -4,13 +4,16 @@ import {
   IntersectionType,
   PartialType,
 } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
+  ArrayMinSize,
   IsEmail,
   IsEnum,
+  IsArray,
   IsNotEmpty,
   IsOptional,
   IsString,
+  ValidateNested,
 } from 'class-validator';
 import { Gender } from 'src/common/index.enum';
 import { Trim } from 'src/decorators/trim.decorator';
@@ -57,6 +60,15 @@ export class CreateEventContactDto {
 }
 
 export class UpdateEventContactDto extends PartialType(CreateEventContactDto) {}
+
+export class CreateBulkEventContactsDto {
+  @ApiProperty({ type: [CreateEventContactDto] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => CreateEventContactDto)
+  contacts: CreateEventContactDto[];
+}
 
 export class SyncEventContactDto extends CreateEventContactDto {
   @ApiProperty({
@@ -132,6 +144,17 @@ export class CreatedEventContactResponseEnvelopeDto extends createResponseDto(
     messageExample: 'Event contact created successfully',
   },
 ) {}
+
+export class BulkCreatedEventContactsResponseEnvelopeDto {
+  @ApiProperty({ example: 201 })
+  code: number;
+
+  @ApiProperty({ example: 'Event contacts created successfully' })
+  message: string;
+
+  @ApiProperty({ type: [EventContactResponseDto] })
+  data: EventContactResponseDto[];
+}
 
 export class UpdatedEventContactResponseEnvelopeDto extends createResponseDto(
   EventContactResponseDto,

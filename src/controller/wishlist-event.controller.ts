@@ -103,6 +103,62 @@ export class WishlistEventController {
     return this.wishlistEventService.findAllWishlistEvents(query);
   }
 
+  @Get('created')
+  @ApiOperation({
+    summary: 'Get paginated wishlist events created by the signed-in user',
+  })
+  @ApiQuery({ name: 'page', required: false, example: 1 })
+  @ApiQuery({ name: 'per_page', required: false, example: 25 })
+  @ApiQuery({ name: 'searchQuery', required: false })
+  @ApiQuery({ name: 'status', required: false })
+  @ApiQuery({ name: 'visibility', required: false })
+  @ApiQuery({ name: 'startDate', required: false })
+  @ApiQuery({ name: 'endDate', required: false })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: SortOrder,
+    example: SortOrder.DESC,
+  })
+  @ApiOkResponse({
+    description: 'Created wishlist events fetched successfully',
+    type: PaginatedWishlistEventsResponseEnvelopeDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid JWT token' })
+  findCreatedWishlistEvents(
+    @Query() query: FindWishlistEventsQueryDto,
+  ): Promise<StandardResopnse<PaginatedRecordsDto<WishlistEvent>>> {
+    return this.wishlistEventService.findCreatedWishlistEvents(query);
+  }
+
+  @Get('participated')
+  @ApiOperation({
+    summary: 'Get paginated wishlist events the signed-in user participates in',
+  })
+  @ApiQuery({ name: 'page', required: false, example: 1 })
+  @ApiQuery({ name: 'per_page', required: false, example: 25 })
+  @ApiQuery({ name: 'searchQuery', required: false })
+  @ApiQuery({ name: 'status', required: false })
+  @ApiQuery({ name: 'visibility', required: false })
+  @ApiQuery({ name: 'startDate', required: false })
+  @ApiQuery({ name: 'endDate', required: false })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: SortOrder,
+    example: SortOrder.DESC,
+  })
+  @ApiOkResponse({
+    description: 'Participated wishlist events fetched successfully',
+    type: PaginatedWishlistEventsResponseEnvelopeDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid JWT token' })
+  findParticipatedWishlistEvents(
+    @Query() query: FindWishlistEventsQueryDto,
+  ): Promise<StandardResopnse<PaginatedRecordsDto<WishlistEvent>>> {
+    return this.wishlistEventService.findParticipatedWishlistEvents(query);
+  }
+
   @Public()
   @Get(':id/gifts')
   @ApiOperation({

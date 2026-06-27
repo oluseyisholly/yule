@@ -7,6 +7,7 @@ export enum SwaggerApiEnumTags {
   DRAWNAMEEVENT = 'Draw Name Event',
   WISHLISTEVENT = 'Wishlist Event',
   GIFTINGEVENT = 'Gifting Event',
+  HANGOUTEVENT = 'Hangout Event',
   EVENTCONTACT = 'Event Contact',
   PARTICIPANT = 'Participant',
   INVITATION = 'Invitation',
@@ -29,6 +30,7 @@ export enum EventOption {
   DRAW_NAME = 'draw_name',
   WISHLIST = 'wishlist',
   GIFTING = 'gifting',
+  HANGOUT = 'hangout',
 }
 
 export enum EventLogAction {

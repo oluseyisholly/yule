@@ -99,8 +99,8 @@ export class EventTypeSummaryResponseDto {
 }
 
 export class RelatedEventIdentifierResponseDto {
-  @ApiProperty()
-  id: string;
+  @ApiPropertyOptional()
+  id?: string;
 
   @ApiProperty()
   eventId: string;
@@ -165,6 +165,9 @@ export class EventResponseDto {
 
   @ApiPropertyOptional({ type: RelatedEventIdentifierResponseDto })
   giftingEvent?: RelatedEventIdentifierResponseDto;
+
+  @ApiPropertyOptional({ type: RelatedEventIdentifierResponseDto })
+  hangoutEvent?: RelatedEventIdentifierResponseDto;
 
   @ApiPropertyOptional({ type: EventContactSummaryResponseDto })
   createdBy?: EventContactSummaryResponseDto;

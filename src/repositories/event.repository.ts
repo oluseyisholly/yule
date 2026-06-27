@@ -35,6 +35,7 @@ export class EventRepository extends BaseRepository<Event> {
       .leftJoinAndSelect('event.drawNameEvent', 'drawNameEvent')
       .leftJoinAndSelect('event.wishlistEvent', 'wishlistEvent')
       .leftJoinAndSelect('event.giftingEvent', 'giftingEvent')
+      .leftJoinAndSelect('event.hangoutEvent', 'hangoutEvent')
       .leftJoinAndSelect('event.createdBy', 'createdBy')
       .leftJoinAndSelect('event.participants', 'participant')
       .leftJoinAndSelect('participant.eventContact', 'participantContact')
@@ -58,6 +59,7 @@ export class EventRepository extends BaseRepository<Event> {
         'wishlistEvent.eventId',
         'giftingEvent.id',
         'giftingEvent.eventId',
+        'hangoutEvent.eventId',
         'createdBy.id',
         'createdBy.firstName',
         'createdBy.lastName',

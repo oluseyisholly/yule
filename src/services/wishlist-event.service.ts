@@ -71,6 +71,42 @@ export class WishlistEventService {
     };
   }
 
+  async findCreatedWishlistEvents(
+    query: FindWishlistEventsQueryDto,
+  ): Promise<StandardResopnse<PaginatedRecordsDto<WishlistEvent>>> {
+    const currentContactId = RequestContext.getCurrentContactId();
+
+    const paginatedWishlistEvents =
+      await this.wishlistEventRepository.findCreatedWishlistEvents(
+        query,
+        currentContactId,
+      );
+
+    return {
+      code: HttpStatus.OK,
+      message: 'Created wishlist events fetched successfully',
+      data: paginatedWishlistEvents,
+    };
+  }
+
+  async findParticipatedWishlistEvents(
+    query: FindWishlistEventsQueryDto,
+  ): Promise<StandardResopnse<PaginatedRecordsDto<WishlistEvent>>> {
+    const currentContactId = RequestContext.getCurrentContactId();
+
+    const paginatedWishlistEvents =
+      await this.wishlistEventRepository.findParticipatedWishlistEvents(
+        query,
+        currentContactId,
+      );
+
+    return {
+      code: HttpStatus.OK,
+      message: 'Participated wishlist events fetched successfully',
+      data: paginatedWishlistEvents,
+    };
+  }
+
   async findWishlistEventById(
     wishlistEventId: string,
   ): Promise<StandardResopnse<WishlistEvent>> {

@@ -7,6 +7,7 @@ import {
   DrawNameMetricsResponseDto,
   GiftMetricsResponseDto,
   GiftTrendMetricDto,
+  HangoutMetricsResponseDto,
   WishlistMetricsResponseDto,
 } from 'src/dtos/dashboard.dto';
 
@@ -49,6 +50,21 @@ type GiftMetricsRawKey =
   | 'total_sellers_this_week';
 
 type GiftMetricsRawRow = Record<GiftMetricsRawKey, string | number>;
+
+type HangoutMetricsRawKey =
+  | 'total_hangouts'
+  | 'people_met'
+  | 'total_this_month'
+  | 'total_this_month_new_this_week'
+  | 'amount_spent'
+  | 'total_hangouts_this_month'
+  | 'total_hangouts_previous_month'
+  | 'total_hangouts_this_week'
+  | 'amount_spent_this_month'
+  | 'amount_spent_previous_month'
+  | 'amount_spent_this_week';
+
+type HangoutMetricsRawRow = Record<HangoutMetricsRawKey, string | number>;
 
 const DRAW_NAME_STATUS = {
   ONGOING: 'ongoing',
@@ -169,6 +185,39 @@ export class DashboardService {
     };
   }
 
+  async getHangoutMetrics(): Promise<
+    StandardResopnse<HangoutMetricsResponseDto>
+  > {
+    const currentContactId = RequestContext.getCurrentContactId();
+    const row = await this.fetchHangoutMetrics(currentContactId);
+
+    return {
+      code: HttpStatus.OK,
+      message: 'Hangout metrics fetched successfully',
+      data: {
+        totalHangouts: this.toTrendMetric(
+          row.total_hangouts,
+          row.total_hangouts_this_month,
+          row.total_hangouts_previous_month,
+          row.total_hangouts_this_week,
+        ),
+        peopleMet: {
+          value: this.toNumber(row.people_met),
+        },
+        totalThisMonth: {
+          value: this.toNumber(row.total_this_month),
+          newThisWeek: this.toNumber(row.total_this_month_new_this_week),
+        },
+        amountSpent: this.toTrendMetric(
+          row.amount_spent,
+          row.amount_spent_this_month,
+          row.amount_spent_previous_month,
+          row.amount_spent_this_week,
+        ),
+      },
+    };
+  }
+
   private async fetchGiftMetrics(
     contactId: string,
   ): Promise<GiftMetricsRawRow> {
@@ -271,6 +320,91 @@ export class DashboardService {
     );
 
     return metrics ?? this.getEmptyGiftRawMetrics();
+  }
+
+  private async fetchHangoutMetrics(
+    contactId: string,
+  ): Promise<HangoutMetricsRawRow> {
+    const [metrics] = await this.dataSource.query<HangoutMetricsRawRow[]>(
+      `
+        WITH scoped_hangout_events AS (
+          SELECT DISTINCT
+            event.id AS event_id,
+            event.created_at,
+            COALESCE(hangout_event.amount, 0) AS amount
+          FROM hangout_events hangout_event
+          INNER JOIN events event
+            ON event.id = hangout_event.event_id
+            AND event.deleted_at IS NULL
+          INNER JOIN event_participants current_participant
+            ON current_participant.event_id = event.id
+            AND current_participant.event_contact_id = $1
+            AND current_participant.deleted_at IS NULL
+          WHERE hangout_event.deleted_at IS NULL
+        )
+        SELECT
+          COUNT(*) AS total_hangouts,
+          (
+            SELECT COUNT(DISTINCT participant.event_contact_id)
+            FROM event_participants participant
+            INNER JOIN scoped_hangout_events scoped_event
+              ON scoped_event.event_id = participant.event_id
+            WHERE participant.deleted_at IS NULL
+              AND participant.event_contact_id IS NOT NULL
+              AND participant.event_contact_id != $1
+          ) AS people_met,
+          COUNT(*)
+            FILTER (
+              WHERE created_at >= date_trunc('month', CURRENT_DATE)
+            ) AS total_this_month,
+          COUNT(*)
+            FILTER (
+              WHERE created_at >= date_trunc('week', CURRENT_DATE)
+            ) AS total_this_month_new_this_week,
+          COALESCE(SUM(amount), 0) AS amount_spent,
+
+          COUNT(*)
+            FILTER (
+              WHERE created_at >= date_trunc('month', CURRENT_DATE)
+            ) AS total_hangouts_this_month,
+          COUNT(*)
+            FILTER (
+              WHERE created_at >= date_trunc('month', CURRENT_DATE) - interval '1 month'
+                AND created_at < date_trunc('month', CURRENT_DATE)
+            ) AS total_hangouts_previous_month,
+          COUNT(*)
+            FILTER (
+              WHERE created_at >= date_trunc('week', CURRENT_DATE)
+            ) AS total_hangouts_this_week,
+
+          COALESCE(
+            SUM(amount)
+              FILTER (
+                WHERE created_at >= date_trunc('month', CURRENT_DATE)
+              ),
+            0
+          ) AS amount_spent_this_month,
+          COALESCE(
+            SUM(amount)
+              FILTER (
+                WHERE created_at >= date_trunc('month', CURRENT_DATE) - interval '1 month'
+                  AND created_at < date_trunc('month', CURRENT_DATE)
+              ),
+            0
+          ) AS amount_spent_previous_month,
+          COALESCE(
+            SUM(amount)
+              FILTER (
+                WHERE created_at >= date_trunc('week', CURRENT_DATE)
+              ),
+            0
+          ) AS amount_spent_this_week
+        FROM scoped_hangout_events
+      `,
+      [contactId],
+    );
+
+    return metrics ?? this.getEmptyHangoutRawMetrics();
   }
 
   private async fetchWishlistMetrics(
@@ -521,6 +655,22 @@ export class DashboardService {
       total_sellers_this_month: 0,
       total_sellers_previous_month: 0,
       total_sellers_this_week: 0,
+    };
+  }
+
+  private getEmptyHangoutRawMetrics(): HangoutMetricsRawRow {
+    return {
+      total_hangouts: 0,
+      people_met: 0,
+      total_this_month: 0,
+      total_this_month_new_this_week: 0,
+      amount_spent: 0,
+      total_hangouts_this_month: 0,
+      total_hangouts_previous_month: 0,
+      total_hangouts_this_week: 0,
+      amount_spent_this_month: 0,
+      amount_spent_previous_month: 0,
+      amount_spent_this_week: 0,
     };
   }
 }

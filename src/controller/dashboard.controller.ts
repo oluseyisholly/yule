@@ -13,6 +13,8 @@ import {
   DrawNameMetricsResponseEnvelopeDto,
   GiftMetricsResponseDto,
   GiftMetricsResponseEnvelopeDto,
+  HangoutMetricsResponseDto,
+  HangoutMetricsResponseEnvelopeDto,
   WishlistMetricsResponseDto,
   WishlistMetricsResponseEnvelopeDto,
 } from 'src/dtos/dashboard.dto';
@@ -55,5 +57,16 @@ export class DashboardController {
   @ApiUnauthorizedResponse({ description: 'Missing or invalid JWT token' })
   getGiftMetrics(): Promise<StandardResopnse<GiftMetricsResponseDto>> {
     return this.dashboardService.getGiftMetrics();
+  }
+
+  @Get('hangout-metrics')
+  @ApiOperation({ summary: 'Get hangout dashboard metrics' })
+  @ApiOkResponse({
+    description: 'Hangout metrics fetched successfully',
+    type: HangoutMetricsResponseEnvelopeDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid JWT token' })
+  getHangoutMetrics(): Promise<StandardResopnse<HangoutMetricsResponseDto>> {
+    return this.dashboardService.getHangoutMetrics();
   }
 }

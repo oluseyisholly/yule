@@ -96,6 +96,61 @@ export class DrawNameEventController {
     return this.drawNameEventService.findAllDrawNameEvents(query);
   }
 
+  @Get('created')
+  @ApiOperation({
+    summary: 'Get paginated draw name events created by the signed-in user',
+  })
+  @ApiQuery({ name: 'page', required: false, example: 1 })
+  @ApiQuery({ name: 'per_page', required: false, example: 25 })
+  @ApiQuery({ name: 'searchQuery', required: false })
+  @ApiQuery({ name: 'status', required: false })
+  @ApiQuery({ name: 'startDate', required: false })
+  @ApiQuery({ name: 'endDate', required: false })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: SortOrder,
+    example: SortOrder.DESC,
+  })
+  @ApiOkResponse({
+    description: 'Created draw name events fetched successfully',
+    type: PaginatedDrawNameEventsResponseEnvelopeDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid JWT token' })
+  findCreatedDrawNameEvents(
+    @Query() query: FindDrawNameEventsQueryDto,
+  ): Promise<StandardResopnse<PaginatedRecordsDto<DrawNameEvent>>> {
+    return this.drawNameEventService.findCreatedDrawNameEvents(query);
+  }
+
+  @Get('participated')
+  @ApiOperation({
+    summary:
+      'Get paginated draw name events the signed-in user participates in',
+  })
+  @ApiQuery({ name: 'page', required: false, example: 1 })
+  @ApiQuery({ name: 'per_page', required: false, example: 25 })
+  @ApiQuery({ name: 'searchQuery', required: false })
+  @ApiQuery({ name: 'status', required: false })
+  @ApiQuery({ name: 'startDate', required: false })
+  @ApiQuery({ name: 'endDate', required: false })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: SortOrder,
+    example: SortOrder.DESC,
+  })
+  @ApiOkResponse({
+    description: 'Participated draw name events fetched successfully',
+    type: PaginatedDrawNameEventsResponseEnvelopeDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid JWT token' })
+  findParticipatedDrawNameEvents(
+    @Query() query: FindDrawNameEventsQueryDto,
+  ): Promise<StandardResopnse<PaginatedRecordsDto<DrawNameEvent>>> {
+    return this.drawNameEventService.findParticipatedDrawNameEvents(query);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get a draw name event by draw name event id' })
   @ApiParam({ name: 'id', description: 'Draw name event id' })

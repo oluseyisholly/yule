@@ -8,6 +8,7 @@ import {
 import { StandardResopnse } from 'src/common';
 import { RequestContext } from 'src/common/context/requestContext';
 import {
+  CreateBulkEventContactsDto,
   CreateEventContactDto,
   FindEventContactsQueryDto,
   SyncEventContactDto,
@@ -40,29 +41,7 @@ export class EventContactService {
     createEventContactDto: CreateEventContactDto,
   ): Promise<StandardResopnse<Contact>> {
     const ownerContactId = RequestContext.getCurrentContactId();
-    const existingContact = await this.eventContactRepository.findByEmail(
-      createEventContactDto.email,
-    );
-
-    await this.ensurePhoneNumberIsAvailable(
-      createEventContactDto.phoneNumber,
-      existingContact?.id,
-    );
-
-    if (existingContact) {
-      await this.eventContactRepository.ensureContactConnection(
-        ownerContactId,
-        existingContact.id,
-      );
-
-      return {
-        code: HttpStatus.CREATED,
-        message: 'Event contact created successfully',
-        data: existingContact,
-      };
-    }
-
-    const contact = await this.eventContactRepository.createEventContact(
+    const contact = await this.createOrConnectEventContact(
       createEventContactDto,
       ownerContactId,
     );
@@ -71,6 +50,28 @@ export class EventContactService {
       code: HttpStatus.CREATED,
       message: 'Event contact created successfully',
       data: contact,
+    };
+  }
+
+  async createBulkEventContacts(
+    createBulkEventContactsDto: CreateBulkEventContactsDto,
+  ): Promise<StandardResopnse<Contact[]>> {
+    const ownerContactId = RequestContext.getCurrentContactId();
+
+    this.ensureBulkContactPayloadIsUnique(createBulkEventContactsDto.contacts);
+
+    const contacts: Contact[] = [];
+
+    for (const contactDto of createBulkEventContactsDto.contacts) {
+      contacts.push(
+        await this.createOrConnectEventContact(contactDto, ownerContactId),
+      );
+    }
+
+    return {
+      code: HttpStatus.CREATED,
+      message: 'Event contacts created successfully',
+      data: contacts,
     };
   }
 
@@ -329,6 +330,65 @@ export class EventContactService {
     }
 
     return contact;
+  }
+
+  private async createOrConnectEventContact(
+    createEventContactDto: CreateEventContactDto,
+    ownerContactId: string,
+  ): Promise<Contact> {
+    const existingContact = await this.eventContactRepository.findByEmail(
+      createEventContactDto.email,
+    );
+
+    // await this.ensurePhoneNumberIsAvailable(
+    //   createEventContactDto.phoneNumber,
+    //   existingContact?.id,
+    // );
+
+    if (existingContact) {
+      await this.eventContactRepository.ensureContactConnection(
+        ownerContactId,
+        existingContact.id,
+      );
+
+      return existingContact;
+    }
+
+    return this.eventContactRepository.createEventContact(
+      createEventContactDto,
+      ownerContactId,
+    );
+  }
+
+  private ensureBulkContactPayloadIsUnique(
+    contacts: CreateEventContactDto[],
+  ): void {
+    const emails = new Set<string>();
+    const phoneNumbers = new Set<string>();
+
+    contacts.forEach((contact) => {
+      const email = contact.email.toLowerCase();
+
+      if (emails.has(email)) {
+        throw new BadRequestException(
+          'Bulk contacts cannot contain duplicate email values',
+        );
+      }
+
+      emails.add(email);
+
+      if (!contact.phoneNumber) {
+        return;
+      }
+
+      if (phoneNumbers.has(contact.phoneNumber)) {
+        throw new BadRequestException(
+          'Bulk contacts cannot contain duplicate phone number values',
+        );
+      }
+
+      phoneNumbers.add(contact.phoneNumber);
+    });
   }
 
   private async ensurePhoneNumberIsAvailable(

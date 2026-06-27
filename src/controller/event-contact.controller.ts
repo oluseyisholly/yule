@@ -23,6 +23,8 @@ import {
 import { StandardResopnse } from 'src/common';
 import { Gender, SwaggerApiEnumTags } from 'src/common/index.enum';
 import {
+  BulkCreatedEventContactsResponseEnvelopeDto,
+  CreateBulkEventContactsDto,
   CreateEventContactDto,
   CreatedEventContactResponseEnvelopeDto,
   CurrentContactIdResponseEnvelopeDto,
@@ -101,6 +103,24 @@ export class EventContactController {
     @Body() createEventContactDto: CreateEventContactDto,
   ): Promise<StandardResopnse<Contact>> {
     return this.eventContactService.createEventContact(createEventContactDto);
+  }
+
+  @Post('bulk')
+  @ApiOperation({ summary: 'Create event contacts in bulk' })
+  @ApiCreatedResponse({
+    description: 'Event contacts created successfully',
+    type: BulkCreatedEventContactsResponseEnvelopeDto,
+  })
+  @ApiConflictResponse({
+    description: 'A contact with this phone number already exists',
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid JWT token' })
+  createBulkEventContacts(
+    @Body() createBulkEventContactsDto: CreateBulkEventContactsDto,
+  ): Promise<StandardResopnse<Contact[]>> {
+    return this.eventContactService.createBulkEventContacts(
+      createBulkEventContactsDto,
+    );
   }
 
   @Get('me/contacts')

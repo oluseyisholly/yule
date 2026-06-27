@@ -84,6 +84,60 @@ export class GiftingEventController {
     return this.giftingEventService.findAllGiftingEvents(query);
   }
 
+  @Get('created')
+  @ApiOperation({
+    summary: 'Get paginated gifting events created by the signed-in user',
+  })
+  @ApiQuery({ name: 'page', required: false, example: 1 })
+  @ApiQuery({ name: 'per_page', required: false, example: 25 })
+  @ApiQuery({ name: 'searchQuery', required: false })
+  @ApiQuery({ name: 'status', required: false })
+  @ApiQuery({ name: 'startDate', required: false })
+  @ApiQuery({ name: 'endDate', required: false })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: SortOrder,
+    example: SortOrder.DESC,
+  })
+  @ApiOkResponse({
+    description: 'Created gifting events fetched successfully',
+    type: PaginatedGiftingEventsResponseEnvelopeDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid JWT token' })
+  findCreatedGiftingEvents(
+    @Query() query: FindGiftingEventsQueryDto,
+  ): Promise<StandardResopnse<PaginatedRecordsDto<GiftingEvent>>> {
+    return this.giftingEventService.findCreatedGiftingEvents(query);
+  }
+
+  @Get('participated')
+  @ApiOperation({
+    summary: 'Get paginated gifting events the signed-in user participates in',
+  })
+  @ApiQuery({ name: 'page', required: false, example: 1 })
+  @ApiQuery({ name: 'per_page', required: false, example: 25 })
+  @ApiQuery({ name: 'searchQuery', required: false })
+  @ApiQuery({ name: 'status', required: false })
+  @ApiQuery({ name: 'startDate', required: false })
+  @ApiQuery({ name: 'endDate', required: false })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: SortOrder,
+    example: SortOrder.DESC,
+  })
+  @ApiOkResponse({
+    description: 'Participated gifting events fetched successfully',
+    type: PaginatedGiftingEventsResponseEnvelopeDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid JWT token' })
+  findParticipatedGiftingEvents(
+    @Query() query: FindGiftingEventsQueryDto,
+  ): Promise<StandardResopnse<PaginatedRecordsDto<GiftingEvent>>> {
+    return this.giftingEventService.findParticipatedGiftingEvents(query);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get a gifting event by gifting event id' })
   @ApiParam({ name: 'id', description: 'Gifting event id' })

@@ -10,58 +10,55 @@ import {
 import { RequestContext } from 'src/common/context/requestContext';
 import { EventOption } from 'src/common/index.enum';
 import {
-  FindGiftingEventsQueryDto,
-  UpdateGiftingEventBaseEventDto,
-  UpdateGiftingEventDetailsDto,
-} from 'src/dtos/gifting-event.dto';
+  FindHangoutEventsQueryDto,
+  UpdateHangoutEventBaseEventDto,
+  UpdateHangoutEventDetailsDto,
+} from 'src/dtos/hangout-event.dto';
 import { PaginatedRecordsDto } from 'src/dtos/general.dto';
 import {
   EventParticipant,
   EventParticipantRole,
 } from 'src/entities/event-participant.entity';
 import { Event } from 'src/entities/event.entity';
-import { GiftingEvent } from 'src/entities/gifting-event.entity';
+import { HangoutEvent } from 'src/entities/hangout-event.entity';
 import { QueryBuilderHelper } from 'src/utils/queryBuilder.utils';
-import { BaseRepository } from './base.repository';
 
-type UpdateGiftingEventRepositoryPayload = {
-  event?: UpdateGiftingEventBaseEventDto & { status?: string };
-  giftingEvent?: UpdateGiftingEventDetailsDto;
+type UpdateHangoutEventRepositoryPayload = {
+  event?: UpdateHangoutEventBaseEventDto & { status?: string };
+  hangoutEvent?: UpdateHangoutEventDetailsDto;
 };
 
 @Injectable()
-export class GiftingEventRepository extends BaseRepository<GiftingEvent> {
+export class HangoutEventRepository {
   constructor(
-    @InjectDataSource() dataSource: DataSource,
-    @InjectRepository(GiftingEvent) repo: Repository<GiftingEvent>,
-  ) {
-    super(dataSource, repo);
-  }
+    @InjectDataSource() private readonly dataSource: DataSource,
+    @InjectRepository(HangoutEvent)
+    private readonly repo: Repository<HangoutEvent>,
+  ) {}
 
-  async createGiftingEvent(
+  async createHangoutEvent(
     eventPayload: DeepPartial<Event>,
-    giftingEventPayload: DeepPartial<GiftingEvent>,
-  ): Promise<GiftingEvent> {
+    hangoutEventPayload: DeepPartial<HangoutEvent>,
+  ): Promise<HangoutEvent> {
     const actorId = RequestContext.getActorId();
 
     return this.dataSource.transaction(async (manager) => {
       const eventRepo = manager.getRepository(Event);
-      const giftingEventRepo = manager.getRepository(GiftingEvent);
+      const hangoutEventRepo = manager.getRepository(HangoutEvent);
       const participantRepo = manager.getRepository(EventParticipant);
 
       const event = await eventRepo.save(
         eventRepo.create({
           ...eventPayload,
-          eventOption: EventOption.GIFTING,
+          eventOption: EventOption.HANGOUT,
           createdById: actorId,
         }),
       );
 
-      const giftingEvent = await giftingEventRepo.save(
-        giftingEventRepo.create({
-          ...giftingEventPayload,
+      const hangoutEvent = await hangoutEventRepo.save(
+        hangoutEventRepo.create({
+          ...hangoutEventPayload,
           eventId: event.id,
-          createdById: actorId,
         }),
       );
 
@@ -77,43 +74,43 @@ export class GiftingEventRepository extends BaseRepository<GiftingEvent> {
         );
       }
 
-      return giftingEventRepo.findOneOrFail({
-        where: { id: giftingEvent.id, eventId: event.id },
+      return hangoutEventRepo.findOneOrFail({
+        where: { eventId: hangoutEvent.eventId },
         relations: { event: true },
       });
     });
   }
 
-  async findAllGiftingEvents(
-    query: FindGiftingEventsQueryDto,
+  async findAllHangoutEvents(
+    query: FindHangoutEventsQueryDto,
     contactId: string,
-  ): Promise<PaginatedRecordsDto<GiftingEvent>> {
-    const qb = this.createGiftingEventBaseQuery(contactId);
-    const helper = this.applyGiftingEventListQueryOptions(qb, query);
+  ): Promise<PaginatedRecordsDto<HangoutEvent>> {
+    const qb = this.createHangoutEventBaseQuery();
+    const helper = this.applyHangoutEventListQueryOptions(qb, query);
 
-    this.applyCreatedByContactFilter(qb, contactId);
+    this.applyReadableByContactFilter(qb, contactId);
 
     return helper.paginate(query);
   }
 
-  async findCreatedGiftingEvents(
-    query: FindGiftingEventsQueryDto,
+  async findCreatedHangoutEvents(
+    query: FindHangoutEventsQueryDto,
     contactId: string,
-  ): Promise<PaginatedRecordsDto<GiftingEvent>> {
-    const qb = this.createGiftingEventBaseQuery(contactId);
-    const helper = this.applyGiftingEventListQueryOptions(qb, query);
+  ): Promise<PaginatedRecordsDto<HangoutEvent>> {
+    const qb = this.createHangoutEventBaseQuery();
+    const helper = this.applyHangoutEventListQueryOptions(qb, query);
 
-    this.applyCreatedByContactFilter(qb, contactId);
+    qb.andWhere('event.created_by_id = :contactId', { contactId });
 
     return helper.paginate(query);
   }
 
-  async findParticipatedGiftingEvents(
-    query: FindGiftingEventsQueryDto,
+  async findParticipatedHangoutEvents(
+    query: FindHangoutEventsQueryDto,
     contactId: string,
-  ): Promise<PaginatedRecordsDto<GiftingEvent>> {
-    const qb = this.createGiftingEventBaseQuery(contactId);
-    const helper = this.applyGiftingEventListQueryOptions(qb, query);
+  ): Promise<PaginatedRecordsDto<HangoutEvent>> {
+    const qb = this.createHangoutEventBaseQuery();
+    const helper = this.applyHangoutEventListQueryOptions(qb, query);
 
     qb.andWhere(`EXISTS ${this.createParticipantAccessSubQuery(qb)}`, {
       contactId,
@@ -126,65 +123,64 @@ export class GiftingEventRepository extends BaseRepository<GiftingEvent> {
     return helper.paginate(query);
   }
 
-  findByIdForUser(id: string, contactId: string): Promise<GiftingEvent | null> {
-    const qb = this.createGiftingEventBaseQuery(contactId).where(
-      'giftingEvent.id = :id',
-      { id },
+  findByIdReadableByContact(
+    eventId: string,
+    contactId: string,
+  ): Promise<HangoutEvent | null> {
+    const qb = this.createHangoutEventBaseQuery().where(
+      'hangoutEvent.eventId = :eventId',
+      { eventId },
     );
 
-    this.applyCreatedByContactFilter(qb, contactId);
+    this.applyReadableByContactFilter(qb, contactId);
 
     return qb.getOne();
   }
 
-  async updateGiftingEvent(
-    giftingEventId: string,
+  findByIdForUser(
     eventId: string,
-    payload: UpdateGiftingEventRepositoryPayload,
+    contactId: string,
+  ): Promise<HangoutEvent | null> {
+    return this.createHangoutEventBaseQuery()
+      .where('hangoutEvent.eventId = :eventId', { eventId })
+      .andWhere('event.created_by_id = :contactId', { contactId })
+      .getOne();
+  }
+
+  async updateHangoutEvent(
+    eventId: string,
+    payload: UpdateHangoutEventRepositoryPayload,
   ): Promise<void> {
     await this.dataSource.transaction(async (manager) => {
       const eventRepo = manager.getRepository(Event);
-      const giftingEventRepo = manager.getRepository(GiftingEvent);
+      const hangoutEventRepo = manager.getRepository(HangoutEvent);
 
       if (payload.event) {
         await eventRepo.update(eventId, payload.event);
       }
 
-      if (payload.giftingEvent) {
-        await giftingEventRepo.update(
-          { id: giftingEventId, eventId },
-          payload.giftingEvent,
-        );
+      if (payload.hangoutEvent) {
+        await hangoutEventRepo.update({ eventId }, payload.hangoutEvent);
       }
     });
   }
 
-  async deleteGiftingEvent(
-    giftingEventId: string,
-    eventId: string,
-  ): Promise<void> {
+  async deleteHangoutEvent(eventId: string): Promise<void> {
     await this.dataSource.transaction(async (manager) => {
-      await manager
-        .getRepository(GiftingEvent)
-        .softDelete({ id: giftingEventId, eventId });
+      await manager.getRepository(HangoutEvent).delete({ eventId });
       await manager.getRepository(Event).softDelete(eventId);
     });
   }
 
-  private createGiftingEventBaseQuery(contactId?: string) {
+  private createHangoutEventBaseQuery() {
     return this.repo
-      .createQueryBuilder('giftingEvent')
-      .innerJoinAndSelect('giftingEvent.event', 'event')
+      .createQueryBuilder('hangoutEvent')
+      .innerJoinAndSelect('hangoutEvent.event', 'event')
       .leftJoinAndSelect('event.createdBy', 'createdBy')
-      .leftJoinAndSelect(
-        'event.participants',
-        'participant',
-        contactId ? 'participant.event_contact_id != :contactId' : undefined,
-        contactId ? { contactId } : undefined,
-      )
+      .leftJoinAndSelect('event.participants', 'participant')
       .leftJoinAndSelect('participant.eventContact', 'participantContact')
       .select([
-        'giftingEvent',
+        'hangoutEvent',
         'event.id',
         'event.title',
         'event.description',
@@ -211,23 +207,28 @@ export class GiftingEventRepository extends BaseRepository<GiftingEvent> {
       ]);
   }
 
-  private applyCreatedByContactFilter(
-    qb: ReturnType<Repository<GiftingEvent>['createQueryBuilder']>,
+  private applyReadableByContactFilter(
+    qb: ReturnType<Repository<HangoutEvent>['createQueryBuilder']>,
     contactId: string,
   ) {
-    qb.andWhere('event.created_by_id = :contactId', { contactId });
+    qb.andWhere(
+      new Brackets((subQuery) => {
+        subQuery.where('event.created_by_id = :contactId', { contactId });
+        subQuery.orWhere(`EXISTS ${this.createParticipantAccessSubQuery(qb)}`, {
+          contactId,
+        });
+      }),
+    );
   }
 
-  private applyGiftingEventListQueryOptions(
-    qb: SelectQueryBuilder<GiftingEvent>,
-    query: FindGiftingEventsQueryDto,
-  ): QueryBuilderHelper<GiftingEvent> {
+  private applyHangoutEventListQueryOptions(
+    qb: SelectQueryBuilder<HangoutEvent>,
+    query: FindHangoutEventsQueryDto,
+  ): QueryBuilderHelper<HangoutEvent> {
     const helper = new QueryBuilderHelper(qb);
 
     helper
-      .applyFilter({
-        'event.status': query.status,
-      })
+      .applyFilter({ 'event.status': query.status })
       .applyDateRange('event.eventDate', query.startDate, query.endDate)
       .applySorting('event.createdAt', query.sortOrder);
 
@@ -240,6 +241,15 @@ export class GiftingEventRepository extends BaseRepository<GiftingEvent> {
           subQuery.orWhere('event.description ILIKE :searchQuery', {
             searchQuery: `%${query.searchQuery}%`,
           });
+          subQuery.orWhere('hangoutEvent.location ILIKE :searchQuery', {
+            searchQuery: `%${query.searchQuery}%`,
+          });
+          subQuery.orWhere('hangoutEvent.hangoutEventId ILIKE :searchQuery', {
+            searchQuery: `%${query.searchQuery}%`,
+          });
+          subQuery.orWhere('hangoutEvent.eventCenterName ILIKE :searchQuery', {
+            searchQuery: `%${query.searchQuery}%`,
+          });
         }),
       );
     }
@@ -248,7 +258,7 @@ export class GiftingEventRepository extends BaseRepository<GiftingEvent> {
   }
 
   private createParticipantAccessSubQuery(
-    qb: SelectQueryBuilder<GiftingEvent>,
+    qb: SelectQueryBuilder<HangoutEvent>,
   ) {
     return qb
       .subQuery()

@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { Brackets, DataSource, DeepPartial, Repository } from 'typeorm';
+import {
+  Brackets,
+  DataSource,
+  DeepPartial,
+  Repository,
+  SelectQueryBuilder,
+} from 'typeorm';
 import { RequestContext } from 'src/common/context/requestContext';
 import { EventOption } from 'src/common/index.enum';
 import {
@@ -65,60 +71,40 @@ export class DrawNameEventRepository extends BaseRepository<DrawNameEvent> {
     query: FindDrawNameEventsQueryDto,
     contactId: string,
   ): Promise<PaginatedRecordsDto<DrawNameEvent>> {
-    const qb = this.repo
-      .createQueryBuilder('drawNameEvent')
-      .innerJoinAndSelect('drawNameEvent.event', 'event')
-      .leftJoinAndSelect('event.createdBy', 'createdBy')
-      .leftJoinAndSelect('event.participants', 'participant')
-      .leftJoinAndSelect('participant.eventContact', 'participantContact')
-      .select([
-        'drawNameEvent',
-        'event.id',
-        'event.title',
-        'event.description',
-        'event.eventTypeId',
-        'event.eventOption',
-        'event.eventDate',
-        'event.status',
-        'event.createdAt',
-        'createdBy.id',
-        'createdBy.firstName',
-        'createdBy.lastName',
-        'createdBy.email',
-        'participant.id',
-        'participant.eventId',
-        'participant.eventContactId',
-        'participant.role',
-        'participant.isNotified',
-        'participant.isPairActive',
-        'participant.giftGiverParticipantId',
-        'participantContact.id',
-        'participantContact.firstName',
-        'participantContact.lastName',
-        'participantContact.email',
-      ]);
-
-    const helper = new QueryBuilderHelper(qb);
-
-    helper
-      .applyFilter({ 'event.status': query.status })
-      .applyDateRange('event.eventDate', query.startDate, query.endDate)
-      .applySorting('event.createdAt', query.sortOrder);
-
-    if (query.searchQuery) {
-      qb.andWhere(
-        new Brackets((subQuery) => {
-          subQuery.where('event.title ILIKE :searchQuery', {
-            searchQuery: `%${query.searchQuery}%`,
-          });
-          subQuery.orWhere('event.description ILIKE :searchQuery', {
-            searchQuery: `%${query.searchQuery}%`,
-          });
-        }),
-      );
-    }
+    const qb = this.createDrawNameEventListQuery();
+    const helper = this.applyDrawNameEventListQueryOptions(qb, query);
 
     this.applyReadableByContactFilter(qb, contactId);
+
+    return helper.paginate(query);
+  }
+
+  async findCreatedDrawNameEvents(
+    query: FindDrawNameEventsQueryDto,
+    contactId: string,
+  ): Promise<PaginatedRecordsDto<DrawNameEvent>> {
+    const qb = this.createDrawNameEventListQuery();
+    const helper = this.applyDrawNameEventListQueryOptions(qb, query);
+
+    qb.andWhere('event.created_by_id = :contactId', { contactId });
+
+    return helper.paginate(query);
+  }
+
+  async findParticipatedDrawNameEvents(
+    query: FindDrawNameEventsQueryDto,
+    contactId: string,
+  ): Promise<PaginatedRecordsDto<DrawNameEvent>> {
+    const qb = this.createDrawNameEventListQuery();
+    const helper = this.applyDrawNameEventListQueryOptions(qb, query);
+    const participantAccessSubQuery =
+      this.createParticipantAccessSubQuery(qb);
+
+    qb.andWhere(`EXISTS ${participantAccessSubQuery}`, { contactId })
+      .andWhere('event.created_by_id != :contactId', { contactId })
+      .andWhere('LOWER(event.status) != :draftStatus', {
+        draftStatus: 'draft',
+      });
 
     return helper.paginate(query);
   }
@@ -270,14 +256,8 @@ export class DrawNameEventRepository extends BaseRepository<DrawNameEvent> {
     qb: ReturnType<Repository<DrawNameEvent>['createQueryBuilder']>,
     contactId: string,
   ) {
-    const participantAccessSubQuery = qb
-      .subQuery()
-      .select('1')
-      .from('event_participants', 'access_participant')
-      .where('access_participant.event_id = event.id')
-      .andWhere('access_participant.event_contact_id = :contactId')
-      .andWhere('access_participant.deleted_at IS NULL')
-      .getQuery();
+    const participantAccessSubQuery =
+      this.createParticipantAccessSubQuery(qb);
 
     qb.andWhere(
       new Brackets((subQuery) => {
@@ -294,6 +274,81 @@ export class DrawNameEventRepository extends BaseRepository<DrawNameEvent> {
         );
       }),
     );
+  }
+
+  private createDrawNameEventListQuery(): SelectQueryBuilder<DrawNameEvent> {
+    return this.repo
+      .createQueryBuilder('drawNameEvent')
+      .innerJoinAndSelect('drawNameEvent.event', 'event')
+      .leftJoinAndSelect('event.createdBy', 'createdBy')
+      .leftJoinAndSelect('event.participants', 'participant')
+      .leftJoinAndSelect('participant.eventContact', 'participantContact')
+      .select([
+        'drawNameEvent',
+        'event.id',
+        'event.title',
+        'event.description',
+        'event.eventTypeId',
+        'event.eventOption',
+        'event.eventDate',
+        'event.status',
+        'event.createdAt',
+        'createdBy.id',
+        'createdBy.firstName',
+        'createdBy.lastName',
+        'createdBy.email',
+        'participant.id',
+        'participant.eventId',
+        'participant.eventContactId',
+        'participant.role',
+        'participant.isNotified',
+        'participant.isPairActive',
+        'participant.giftGiverParticipantId',
+        'participantContact.id',
+        'participantContact.firstName',
+        'participantContact.lastName',
+        'participantContact.email',
+      ]);
+  }
+
+  private applyDrawNameEventListQueryOptions(
+    qb: SelectQueryBuilder<DrawNameEvent>,
+    query: FindDrawNameEventsQueryDto,
+  ): QueryBuilderHelper<DrawNameEvent> {
+    const helper = new QueryBuilderHelper(qb);
+
+    helper
+      .applyFilter({ 'event.status': query.status })
+      .applyDateRange('event.eventDate', query.startDate, query.endDate)
+      .applySorting('event.createdAt', query.sortOrder);
+
+    if (query.searchQuery) {
+      qb.andWhere(
+        new Brackets((subQuery) => {
+          subQuery.where('event.title ILIKE :searchQuery', {
+            searchQuery: `%${query.searchQuery}%`,
+          });
+          subQuery.orWhere('event.description ILIKE :searchQuery', {
+            searchQuery: `%${query.searchQuery}%`,
+          });
+        }),
+      );
+    }
+
+    return helper;
+  }
+
+  private createParticipantAccessSubQuery(
+    qb: SelectQueryBuilder<DrawNameEvent>,
+  ): string {
+    return qb
+      .subQuery()
+      .select('1')
+      .from('event_participants', 'access_participant')
+      .where('access_participant.event_id = event.id')
+      .andWhere('access_participant.event_contact_id = :contactId')
+      .andWhere('access_participant.deleted_at IS NULL')
+      .getQuery();
   }
 
   async updateDrawNameEvent(

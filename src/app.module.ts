@@ -12,6 +12,7 @@ import { EventParticipantExclusionController } from './controller/event-particip
 import { EventTypeController } from './controller/event-type.controller';
 import { GiftController } from './controller/gift.controller';
 import { GiftingEventController } from './controller/gifting-event.controller';
+import { HangoutEventController } from './controller/hangout-event.controller';
 import { InvitationController } from './controller/invitation.controller';
 import { ParticipantController } from './controller/participant.controller';
 import { UserController } from './controller/user.controller';
@@ -36,6 +37,7 @@ import { EventRepository } from './repositories/event.repository';
 import { EventTypeRepository } from './repositories/event-type.repository';
 import { GiftRepository } from './repositories/gift.repository';
 import { GiftingEventRepository } from './repositories/gifting-event.repository';
+import { HangoutEventRepository } from './repositories/hangout-event.repository';
 import { InvitationRepository } from './repositories/invitation.repository';
 import { ParticipantRepository } from './repositories/participant.repository';
 import { UserRepository } from './repositories/user.repositoty';
@@ -58,6 +60,7 @@ import { EventService } from './services/event.service';
 import { EventTypeService } from './services/event-type.service';
 import { GiftService } from './services/gift.service';
 import { GiftingEventService } from './services/gifting-event.service';
+import { HangoutEventService } from './services/hangout-event.service';
 import { InvitationService } from './services/invitation.service';
 import { ParticipantService } from './services/participant.service';
 import { UserService } from './services/user.services';
@@ -108,6 +111,7 @@ import { SchedulerService } from './services/scheduler.service';
     InvitationController,
     GiftController,
     GiftingEventController,
+    HangoutEventController,
     WishlistEventController,
   ],
   providers: [
@@ -142,9 +146,11 @@ import { SchedulerService } from './services/scheduler.service';
     EventTypeRepository,
     GiftService,
     GiftingEventService,
+    HangoutEventService,
     EmailService,
     GiftRepository,
     GiftingEventRepository,
+    HangoutEventRepository,
     InvitationService,
     InvitationRepository,
     ParticipantService,
