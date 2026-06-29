@@ -17,7 +17,7 @@ export class Relationship extends Base {
   @Column({ type: 'text', nullable: true })
   description?: string;
 
-  @Column({ type: 'boolean', default: true })
+  @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;
 
   @OneToMany(() => GiftingEvent, (giftingEvent) => giftingEvent.relationship)
