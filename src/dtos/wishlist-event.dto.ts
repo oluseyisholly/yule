@@ -129,6 +129,9 @@ export class WishlistEventCreatorResponseDto {
 
   @ApiProperty()
   email: string;
+
+  @ApiPropertyOptional()
+  profileUrl?: string;
 }
 
 export class WishlistEventParticipantPersonResponseDto {
@@ -143,6 +146,9 @@ export class WishlistEventParticipantPersonResponseDto {
 
   @ApiProperty()
   email: string;
+
+  @ApiPropertyOptional()
+  profileUrl?: string;
 }
 
 export class WishlistEventParticipantResponseDto {

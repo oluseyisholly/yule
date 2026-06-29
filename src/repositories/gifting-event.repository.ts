@@ -21,6 +21,7 @@ import {
 } from 'src/entities/event-participant.entity';
 import { Event } from 'src/entities/event.entity';
 import { GiftingEvent } from 'src/entities/gifting-event.entity';
+import { Relationship } from 'src/entities/relationship.entity';
 import { QueryBuilderHelper } from 'src/utils/queryBuilder.utils';
 import { BaseRepository } from './base.repository';
 
@@ -175,6 +176,7 @@ export class GiftingEventRepository extends BaseRepository<GiftingEvent> {
     return this.repo
       .createQueryBuilder('giftingEvent')
       .innerJoinAndSelect('giftingEvent.event', 'event')
+      .leftJoinAndSelect('giftingEvent.relationship', 'relationship')
       .leftJoinAndSelect('event.createdBy', 'createdBy')
       .leftJoinAndSelect(
         'event.participants',
@@ -185,6 +187,10 @@ export class GiftingEventRepository extends BaseRepository<GiftingEvent> {
       .leftJoinAndSelect('participant.eventContact', 'participantContact')
       .select([
         'giftingEvent',
+        'relationship.id',
+        'relationship.name',
+        'relationship.description',
+        'relationship.isActive',
         'event.id',
         'event.title',
         'event.description',
@@ -197,6 +203,7 @@ export class GiftingEventRepository extends BaseRepository<GiftingEvent> {
         'createdBy.firstName',
         'createdBy.lastName',
         'createdBy.email',
+        'createdBy.profileUrl',
         'participant.id',
         'participant.eventId',
         'participant.eventContactId',
@@ -208,6 +215,7 @@ export class GiftingEventRepository extends BaseRepository<GiftingEvent> {
         'participantContact.firstName',
         'participantContact.lastName',
         'participantContact.email',
+        'participantContact.profileUrl',
       ]);
   }
 
@@ -216,6 +224,18 @@ export class GiftingEventRepository extends BaseRepository<GiftingEvent> {
     contactId: string,
   ) {
     qb.andWhere('event.created_by_id = :contactId', { contactId });
+  }
+
+  async relationshipExistsForUser(
+    relationshipId: string,
+    contactId: string,
+  ): Promise<boolean> {
+    return this.dataSource.getRepository(Relationship).exist({
+      where: [
+        { id: relationshipId, createdById: contactId },
+        { id: relationshipId, createdById: null as any },
+      ],
+    });
   }
 
   private applyGiftingEventListQueryOptions(

@@ -19,6 +19,7 @@ export type AuthContactPayload = {
   lastName?: string;
   email?: string;
   phoneNumber?: string;
+  profileUrl?: string;
 };
 
 @Injectable()
@@ -55,6 +56,7 @@ export class EventContactRepository {
         lastName: payload.lastName ?? '',
         phoneNumber: payload.phoneNumber,
         email: payload.email,
+        profileUrl: payload.profileUrl,
         gender: Gender.MALE,
         userId: payload.userId,
       }),

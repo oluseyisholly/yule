@@ -138,6 +138,9 @@ export class DrawNameEventParticipantPersonResponseDto {
 
   @ApiProperty()
   email: string;
+
+  @ApiPropertyOptional()
+  profileUrl?: string;
 }
 
 export class DrawNameEventParticipantResponseDto {
@@ -175,6 +178,9 @@ export class DrawNameEventCreatorResponseDto {
 
   @ApiProperty()
   email: string;
+
+  @ApiPropertyOptional()
+  profileUrl?: string;
 }
 
 export class DrawNameEventBaseEventResponseDto {

@@ -27,6 +27,7 @@ import {
   createPaginatedDto,
   createResponseDto,
 } from './general.dto';
+import { NumberNotGreaterThan } from 'src/decorators/number-not-greater-than.decorator';
 
 export class CreateGiftingEventBaseEventDto {
   @ApiProperty()
@@ -55,11 +56,26 @@ export class CreateGiftingEventBaseEventDto {
 }
 
 export class CreateGiftingEventDetailsDto {
+  @ApiPropertyOptional()
+  @Trim()
+  @IsOptional()
+  @IsUUID()
+  relationshipId?: string;
+
   @ApiPropertyOptional({ minimum: 0 })
   @IsOptional()
   @IsNumber()
   @Min(0)
-  giftBudget?: number;
+  @NumberNotGreaterThan('maximumGiftBudget', {
+    message: 'minimumGiftBudget cannot be greater than maximumGiftBudget',
+  })
+  minimumGiftBudget?: number;
+
+  @ApiPropertyOptional({ minimum: 0 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  maximumGiftBudget?: number;
 
   @ApiPropertyOptional({ default: 'NGN' })
   @Trim()
@@ -131,6 +147,9 @@ export class GiftingEventParticipantPersonResponseDto {
 
   @ApiProperty()
   email: string;
+
+  @ApiPropertyOptional()
+  profileUrl?: string;
 }
 
 export class GiftingEventParticipantResponseDto {
@@ -171,6 +190,9 @@ export class GiftingEventCreatorResponseDto {
 
   @ApiProperty()
   email: string;
+
+  @ApiPropertyOptional()
+  profileUrl?: string;
 }
 
 export class GiftingEventBaseEventResponseDto {
@@ -202,6 +224,20 @@ export class GiftingEventBaseEventResponseDto {
   participants?: GiftingEventParticipantResponseDto[];
 }
 
+export class GiftingEventRelationshipResponseDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  name: string;
+
+  @ApiPropertyOptional()
+  description?: string | null;
+
+  @ApiProperty()
+  isActive: boolean;
+}
+
 export class GiftingEventResponseDto {
   @ApiProperty()
   id: string;
@@ -210,7 +246,13 @@ export class GiftingEventResponseDto {
   eventId: string;
 
   @ApiPropertyOptional()
-  giftBudget?: number;
+  relationshipId?: string | null;
+
+  @ApiPropertyOptional({ minimum: 0 })
+  minimumGiftBudget?: number;
+
+  @ApiPropertyOptional({ minimum: 0 })
+  maximumGiftBudget?: number;
 
   @ApiProperty()
   currency: string;
@@ -220,6 +262,9 @@ export class GiftingEventResponseDto {
 
   @ApiProperty()
   allowAnonymousGifting: boolean;
+
+  @ApiPropertyOptional({ type: GiftingEventRelationshipResponseDto })
+  relationship?: GiftingEventRelationshipResponseDto;
 
   @ApiProperty({ type: GiftingEventBaseEventResponseDto })
   event: GiftingEventBaseEventResponseDto;

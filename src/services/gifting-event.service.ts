@@ -1,4 +1,9 @@
-import { HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { StandardResopnse } from 'src/common';
 import { RequestContext } from 'src/common/context/requestContext';
 import {
@@ -26,6 +31,9 @@ export class GiftingEventService {
     createGiftingEventDto: CreateGiftingEventDto,
   ): Promise<StandardResopnse<GiftingEvent>> {
     RequestContext.getCurrentContactId();
+    await this.ensureRelationshipExistsForCurrentUser(
+      createGiftingEventDto.relationshipId,
+    );
 
     const giftingEvent = await this.giftingEventRepository.createGiftingEvent(
       createGiftingEventDto.event,
@@ -108,6 +116,9 @@ export class GiftingEventService {
   ): Promise<StandardResopnse<GiftingEvent>> {
     const currentContactId = RequestContext.getCurrentContactId();
     const giftingEvent = await this.getGiftingEventOrThrow(giftingEventId);
+    await this.ensureRelationshipExistsForCurrentUser(
+      updateGiftingEventDto.relationshipId,
+    );
 
     await this.giftingEventRepository.updateGiftingEvent(
       giftingEvent.id,
@@ -196,11 +207,19 @@ export class GiftingEventService {
   private toGiftingEventPayload(
     payload: CreateGiftingEventDto | UpdateGiftingEventDto,
   ): CreateGiftingEventDetailsDto | UpdateGiftingEventDetailsDto {
-    const { giftBudget, currency, giftDeadline, allowAnonymousGifting } =
-      payload;
+    const {
+      relationshipId,
+      minimumGiftBudget,
+      maximumGiftBudget,
+      currency,
+      giftDeadline,
+      allowAnonymousGifting,
+    } = payload;
 
     return {
-      giftBudget,
+      relationshipId,
+      minimumGiftBudget,
+      maximumGiftBudget,
       currency,
       giftDeadline,
       allowAnonymousGifting,
@@ -216,5 +235,24 @@ export class GiftingEventService {
     );
 
     return hasGiftingEventValue ? giftingEventPayload : undefined;
+  }
+
+  private async ensureRelationshipExistsForCurrentUser(
+    relationshipId?: string | null,
+  ): Promise<void> {
+    if (!relationshipId) {
+      return;
+    }
+
+    const currentContactId = RequestContext.getCurrentContactId();
+    const relationshipExists =
+      await this.giftingEventRepository.relationshipExistsForUser(
+        relationshipId,
+        currentContactId,
+      );
+
+    if (!relationshipExists) {
+      throw new BadRequestException('Relationship not found');
+    }
   }
 }

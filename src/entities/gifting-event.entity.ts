@@ -1,6 +1,14 @@
-import { Entity, PrimaryColumn, Column, OneToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryColumn,
+  Column,
+  OneToOne,
+  JoinColumn,
+  ManyToOne,
+} from 'typeorm';
 import { Event } from './event.entity';
 import { Base } from './base';
+import { Relationship } from './relationship.entity';
 
 @Entity('gifting_events')
 export class GiftingEvent extends Base {
@@ -13,8 +21,23 @@ export class GiftingEvent extends Base {
   @JoinColumn({ name: 'event_id' })
   event: Event;
 
-  @Column({ type: 'numeric', precision: 12, scale: 2, nullable: true })
-  giftBudget?: number;
+  @Column({
+    name: 'minimum_gift_budget',
+    type: 'numeric',
+    precision: 15,
+    scale: 2,
+    nullable: true,
+  })
+  minimumGiftBudget?: number;
+
+  @Column({
+    name: 'maximum_gift_budget',
+    type: 'numeric',
+    precision: 15,
+    scale: 2,
+    nullable: true,
+  })
+  maximumGiftBudget?: number;
 
   @Column({ type: 'varchar', length: 10, default: 'NGN' })
   currency: string;
@@ -24,4 +47,14 @@ export class GiftingEvent extends Base {
 
   @Column({ type: 'boolean', default: false })
   allowAnonymousGifting: boolean;
+
+  @ManyToOne(() => Relationship, (relationship) => relationship.giftingEvents, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'relationship_id' })
+  relationship?: Relationship | null;
+
+  @Column({ name: 'relationship_id', type: 'uuid', nullable: true })
+  relationshipId?: string | null;
 }

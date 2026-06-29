@@ -47,6 +47,7 @@ export class ParticipantRepository extends BaseRepository<EventParticipant> {
         'eventContact.firstName',
         'eventContact.lastName',
         'eventContact.email',
+        'eventContact.profileUrl',
       ]);
     const helper = new QueryBuilderHelper(qb);
 
@@ -90,6 +91,7 @@ export class ParticipantRepository extends BaseRepository<EventParticipant> {
         'eventContact.firstName',
         'eventContact.lastName',
         'eventContact.email',
+        'eventContact.profileUrl',
       ]);
     const helper = new QueryBuilderHelper(qb);
 
@@ -191,6 +193,7 @@ export class ParticipantRepository extends BaseRepository<EventParticipant> {
         'eventContact.lastName',
         'eventContact.email',
         'eventContact.phoneNumber',
+        'eventContact.profileUrl',
       ])
       .where('participant.id = :id', { id })
       .andWhere('event.created_by_id = :ownerContactId', { ownerContactId })
@@ -215,6 +218,7 @@ export class ParticipantRepository extends BaseRepository<EventParticipant> {
         'eventContact.lastName',
         'eventContact.email',
         'eventContact.phoneNumber',
+        'eventContact.profileUrl',
       ])
       .where('participant.event_id = :eventId', { eventId })
       .andWhere('event.created_by_id = :ownerContactId', { ownerContactId })
@@ -262,12 +266,14 @@ export class ParticipantRepository extends BaseRepository<EventParticipant> {
         'eventContact.firstName',
         'eventContact.lastName',
         'eventContact.email',
+        'eventContact.profileUrl',
         'giftGiverParticipant.id',
         'giftGiverParticipant.eventContactId',
         'giftGiverEventContact.id',
         'giftGiverEventContact.firstName',
         'giftGiverEventContact.lastName',
         'giftGiverEventContact.email',
+        'giftGiverEventContact.profileUrl',
       ])
       .where('participant.event_id = :eventId', { eventId })
       .andWhere('participant.event_contact_id = :contactId', { contactId })
@@ -287,6 +293,7 @@ export class ParticipantRepository extends BaseRepository<EventParticipant> {
         'eventContact.firstName',
         'eventContact.lastName',
         'eventContact.email',
+        'eventContact.profileUrl',
       ])
       .where('participant.event_id = :eventId', { eventId })
       .andWhere('participant.gift_giver_participant_id = :giverParticipantId', {
@@ -477,6 +484,7 @@ export class ParticipantRepository extends BaseRepository<EventParticipant> {
         'eventContact.email',
         'eventContact.gender',
         'eventContact.phoneNumber',
+        'eventContact.profileUrl',
         'eventContact.note',
       ])
       .where('participant.id IN (:...participantIds)', { participantIds })
@@ -527,6 +535,7 @@ export class ParticipantRepository extends BaseRepository<EventParticipant> {
         'eventContact.firstName',
         'eventContact.lastName',
         'eventContact.email',
+        'eventContact.profileUrl',
       ])
       .where('participant.event_id = :eventId', { eventId })
       .andWhere('event.created_by_id = :ownerContactId', { ownerContactId })

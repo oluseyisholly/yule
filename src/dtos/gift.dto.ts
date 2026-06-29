@@ -228,6 +228,9 @@ export class GiftParticipantContactResponseDto {
 
   @ApiPropertyOptional()
   email?: string;
+
+  @ApiPropertyOptional()
+  profileUrl?: string;
 }
 
 export class GiftParticipantResponseDto {
@@ -273,6 +276,9 @@ export class GiftRecipientPersonResponseDto {
 
   @ApiPropertyOptional()
   email?: string;
+
+  @ApiPropertyOptional()
+  profileUrl?: string;
 }
 
 export class GroupedGivenGiftResponseDto {

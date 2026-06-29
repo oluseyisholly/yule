@@ -29,6 +29,7 @@ type AuthUserPayload = {
   lastName?: string;
   email?: string;
   phoneNumber?: string;
+  profileUrl?: string;
 };
 
 @Injectable()
@@ -266,6 +267,7 @@ export class EventContactService {
       lastName: authUser?.lastName,
       email: authUser?.email?.toLowerCase(),
       phoneNumber: authUser?.phoneNumber,
+      profileUrl: authUser?.profileUrl,
     };
   }
 

@@ -57,6 +57,12 @@ export class CreateEventContactDto {
   @IsNotEmpty()
   @IsEmail()
   email: string;
+
+  @ApiPropertyOptional()
+  @Trim({ emptyToNull: true })
+  @IsOptional()
+  @IsString()
+  profileUrl?: string | null;
 }
 
 export class UpdateEventContactDto extends PartialType(CreateEventContactDto) {}
@@ -114,6 +120,9 @@ export class EventContactResponseDto {
 
   @ApiPropertyOptional()
   userId?: string;
+
+  @ApiPropertyOptional()
+  profileUrl?: string;
 
   @ApiPropertyOptional()
   note?: string;

@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
@@ -58,6 +58,9 @@ export class ParticipantExclusionContactDto {
 
   @ApiProperty()
   phoneNumber: string;
+
+  @ApiPropertyOptional()
+  profileUrl?: string;
 }
 
 export class ParticipantExclusionParticipantDto {

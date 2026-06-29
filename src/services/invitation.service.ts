@@ -743,6 +743,7 @@ export class InvitationService {
       lastName: contact.lastName,
       email: contact.email,
       phoneNumber: contact.phoneNumber,
+      profileUrl: contact.profileUrl,
     };
   }
 }

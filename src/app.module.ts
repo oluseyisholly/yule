@@ -15,6 +15,7 @@ import { GiftingEventController } from './controller/gifting-event.controller';
 import { HangoutEventController } from './controller/hangout-event.controller';
 import { InvitationController } from './controller/invitation.controller';
 import { ParticipantController } from './controller/participant.controller';
+import { RelationshipController } from './controller/relationship.controller';
 import { UserController } from './controller/user.controller';
 import { WishlistEventController } from './controller/wishlist-event.controller';
 import { Contact } from './entities/contact.entity';
@@ -28,6 +29,7 @@ import { EventGift } from './entities/gift.entity';
 import { Invitation } from './entities/invitation.entity';
 import { HangoutEvent } from './entities/hangout-event.entity';
 import { GiftingEvent } from './entities/gifting-event.entity';
+import { Relationship } from './entities/relationship.entity';
 import { WishlistEvent } from './entities/wishlist-event.entity';
 import { DrawNameEvent } from './entities/draw-name-event.entity';
 import { DrawNameEventRepository } from './repositories/draw-name-event.repository';
@@ -40,6 +42,7 @@ import { GiftingEventRepository } from './repositories/gifting-event.repository'
 import { HangoutEventRepository } from './repositories/hangout-event.repository';
 import { InvitationRepository } from './repositories/invitation.repository';
 import { ParticipantRepository } from './repositories/participant.repository';
+import { RelationshipRepository } from './repositories/relationship.repository';
 import { UserRepository } from './repositories/user.repositoty';
 import { WishlistEventRepository } from './repositories/wishlist-event.repository';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
@@ -63,6 +66,7 @@ import { GiftingEventService } from './services/gifting-event.service';
 import { HangoutEventService } from './services/hangout-event.service';
 import { InvitationService } from './services/invitation.service';
 import { ParticipantService } from './services/participant.service';
+import { RelationshipService } from './services/relationship.service';
 import { UserService } from './services/user.services';
 import { EmailService } from './services/email.service';
 import { WishlistEventService } from './services/wishlist-event.service';
@@ -87,6 +91,7 @@ import { SchedulerService } from './services/scheduler.service';
       Invitation,
       HangoutEvent,
       GiftingEvent,
+      Relationship,
       WishlistEvent,
       DrawNameEvent,
       EventLog,
@@ -108,6 +113,7 @@ import { SchedulerService } from './services/scheduler.service';
     EventContactController,
     EventParticipantExclusionController,
     ParticipantController,
+    RelationshipController,
     InvitationController,
     GiftController,
     GiftingEventController,
@@ -155,6 +161,8 @@ import { SchedulerService } from './services/scheduler.service';
     InvitationRepository,
     ParticipantService,
     ParticipantRepository,
+    RelationshipService,
+    RelationshipRepository,
     UserService,
     UserRepository,
     WishlistEventService,

@@ -251,6 +251,7 @@ export class WishlistEventRepository extends BaseRepository<WishlistEvent> {
         'createdBy.firstName',
         'createdBy.lastName',
         'createdBy.email',
+        'createdBy.profileUrl',
         'participant.id',
         'participant.eventId',
         'participant.eventContactId',
@@ -262,6 +263,7 @@ export class WishlistEventRepository extends BaseRepository<WishlistEvent> {
         'participantContact.firstName',
         'participantContact.lastName',
         'participantContact.email',
+        'participantContact.profileUrl',
       ]);
   }
 

@@ -64,6 +64,7 @@ export class EventRepository extends BaseRepository<Event> {
         'createdBy.firstName',
         'createdBy.lastName',
         'createdBy.email',
+        'createdBy.profileUrl',
         'participant.id',
         'participant.eventId',
         'participant.eventContactId',
@@ -75,6 +76,7 @@ export class EventRepository extends BaseRepository<Event> {
         'participantContact.firstName',
         'participantContact.lastName',
         'participantContact.email',
+        'participantContact.profileUrl',
       ]);
 
     qb.andWhere('event.status != :draftEventStatus', {

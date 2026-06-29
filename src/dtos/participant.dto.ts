@@ -185,6 +185,9 @@ export class ParticipantContactResponseDto {
 
   @ApiPropertyOptional()
   email?: string;
+
+  @ApiPropertyOptional()
+  profileUrl?: string;
 }
 
 export class ParticipantGiftGiverResponseDto {

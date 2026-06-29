@@ -133,6 +133,7 @@ export class DrawNameEventRepository extends BaseRepository<DrawNameEvent> {
         'createdBy.firstName',
         'createdBy.lastName',
         'createdBy.email',
+        'createdBy.profileUrl',
         'participant.id',
         'participant.eventId',
         'participant.eventContactId',
@@ -308,6 +309,7 @@ export class DrawNameEventRepository extends BaseRepository<DrawNameEvent> {
         'participantContact.firstName',
         'participantContact.lastName',
         'participantContact.email',
+        'participantContact.profileUrl',
       ]);
   }
 

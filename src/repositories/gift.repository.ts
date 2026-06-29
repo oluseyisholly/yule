@@ -707,11 +707,13 @@ export class GiftRepository extends BaseRepository<EventGift> {
         'recipientContact.firstName',
         'recipientContact.lastName',
         'recipientContact.email',
+        'recipientContact.profileUrl',
         'giverParticipant',
         'giverContact.id',
         'giverContact.firstName',
         'giverContact.lastName',
         'giverContact.email',
+        'giverContact.profileUrl',
       ]);
   }
 
@@ -770,11 +772,13 @@ export class GiftRepository extends BaseRepository<EventGift> {
         'recipientContact.firstName',
         'recipientContact.lastName',
         'recipientContact.email',
+        'recipientContact.profileUrl',
         'giverParticipant',
         'giverContact.id',
         'giverContact.firstName',
         'giverContact.lastName',
         'giverContact.email',
+        'giverContact.profileUrl',
       ])
       .where('gift.event_id = :eventId', { eventId })
       .andWhere('event.created_by_id = :ownerContactId', { ownerContactId });
@@ -964,7 +968,8 @@ export class GiftRepository extends BaseRepository<EventGift> {
               DISTINCT jsonb_build_object(
                 'firstName', recipient_contact."firstName",
                 'lastName', recipient_contact."lastName",
-                'email', recipient_contact.email
+                'email', recipient_contact.email,
+                'profileUrl', recipient_contact.profile_url
               )
             ) FILTER (WHERE recipient_contact.id IS NOT NULL),
             '[]'

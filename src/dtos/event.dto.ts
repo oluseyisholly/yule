@@ -82,6 +82,9 @@ export class EventContactSummaryResponseDto {
 
   @ApiProperty()
   email: string;
+
+  @ApiPropertyOptional()
+  profileUrl?: string;
 }
 
 export class EventTypeSummaryResponseDto {

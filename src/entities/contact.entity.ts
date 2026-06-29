@@ -37,6 +37,9 @@ export class Contact extends Base {
   @Column({ name: 'user_id', type: 'varchar', length: 255, nullable: true })
   userId?: string;
 
+  @Column({ name: 'profile_url', type: 'text', nullable: true })
+  profileUrl?: string;
+
   @Column({ type: 'text', nullable: true })
   note?: string;
 }

@@ -193,6 +193,7 @@ export class HangoutEventRepository {
         'createdBy.firstName',
         'createdBy.lastName',
         'createdBy.email',
+        'createdBy.profileUrl',
         'participant.id',
         'participant.eventId',
         'participant.eventContactId',
@@ -204,6 +205,7 @@ export class HangoutEventRepository {
         'participantContact.firstName',
         'participantContact.lastName',
         'participantContact.email',
+        'participantContact.profileUrl',
       ]);
   }
 

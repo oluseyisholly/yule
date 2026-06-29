@@ -91,6 +91,9 @@ export class InvitationContactResponseDto {
 
   @ApiPropertyOptional()
   phoneNumber?: string;
+
+  @ApiPropertyOptional()
+  profileUrl?: string;
 }
 
 export class InvitationUserResponseDto {

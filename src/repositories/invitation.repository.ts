@@ -114,6 +114,7 @@ export class InvitationRepository extends BaseRepository<Invitation> {
         'event_contact.lastName',
         'event_contact.email',
         'event_contact.phoneNumber',
+        'event_contact.profileUrl',
         'event_contact.userId',
       ])
       .where('invitation.token = :token', { token })
@@ -158,6 +159,7 @@ export class InvitationRepository extends BaseRepository<Invitation> {
         'event_contact.lastName',
         'event_contact.email',
         'event_contact.phoneNumber',
+        'event_contact.profileUrl',
       ])
       .where('invitation.event_type = :eventType', { eventType })
       .andWhere('event.created_by_id = :ownerContactId', { ownerContactId })
@@ -239,6 +241,7 @@ export class InvitationRepository extends BaseRepository<Invitation> {
         'event_contact.lastName',
         'event_contact.email',
         'event_contact.phoneNumber',
+        'event_contact.profileUrl',
         'event_contact.userId',
       ])
       .where('invitation.id = :id', { id })

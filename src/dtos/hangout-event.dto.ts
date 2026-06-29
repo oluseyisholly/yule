@@ -168,6 +168,9 @@ export class HangoutEventContactResponseDto {
 
   @ApiProperty()
   email: string;
+
+  @ApiPropertyOptional()
+  profileUrl?: string;
 }
 
 export class HangoutEventParticipantResponseDto {
